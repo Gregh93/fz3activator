@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="WF Activator" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>Watchface QR Activator</title>
+  <title>FZ3 Watchfaces Activator</title>
   <style>
     :root {
       --bg:       #1a1a1a;
@@ -44,7 +44,6 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
     header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
@@ -53,9 +52,8 @@
     #setupBar {
       display: flex;
       gap: 8px;
-      padding: 10px 14px;
+      padding: 4px 14px;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
     .setup-btn {
@@ -73,8 +71,16 @@
       font-weight: 600;
       cursor: pointer;
     }
-    .setup-btn:active { background: var(--accent); }
+    .setup-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .setup-btn:not(:disabled):active { background: var(--accent); }
     .setup-btn.ok { border-color: var(--green); color: var(--green); }
+    
+    /* Icon Only Refresh Custom Layout */
+    .setup-btn.icon-only {
+      flex: 0 0 auto;
+      width: 48px;
+      padding: 8px 0;
+    }
     
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
     .status-dot.ok { background: var(--green); }
@@ -256,7 +262,7 @@
 <body>
 
 <header>
-  <h1>🕐 Watchfaces QR Activator</h1>
+  <h1>🕐 FZ3 Watchfaces Activator</h1>
   <span id="selCount">0 selected</span>
 </header>
 
@@ -266,6 +272,10 @@
   <button id="folderBtn" class="setup-btn" onclick="document.getElementById('folderInput').click()">
     <div id="fileDot" class="status-dot"></div>
     📂 Load data
+  </button>
+
+  <button id="refreshBtn" class="setup-btn icon-only" onclick="refreshFolderData()" title="Refresh files" disabled>
+    🔄
   </button>
   
   <button id="connectBtn" class="setup-btn" onclick="startAuthRedirect()">
@@ -393,15 +403,15 @@ function restoreFromCache() {
     if (hasCreds && hasWfs) {
       document.getElementById('fileDot').className = 'status-dot ok';
       document.getElementById('folderBtn').classList.add('ok');
+      document.getElementById('refreshBtn').disabled = false;
       reloadList();
     }
   } catch(e) {}
 }
 
-// FOLDER PICKER LOGIC
-document.getElementById('folderInput').addEventListener('change', async function(e) {
-  const files = e.target.files;
-  if (!files.length) return;
+// CORE FILE PROCESSING LOGIC
+async function processFiles(files) {
+  if (!files || !files.length) return;
   
   let foundCreds = false;
   let foundWFs = false;
@@ -430,9 +440,11 @@ document.getElementById('folderInput').addEventListener('change', async function
   if (foundCreds && foundWFs) {
     document.getElementById('fileDot').className = 'status-dot ok';
     document.getElementById('folderBtn').classList.add('ok');
+    document.getElementById('refreshBtn').disabled = false;
     reloadList();
-    toast('✅ Folder Data Loaded');
+    toast('✅ Data Loaded/Refreshed');
   } else if (foundWFs) {
+    document.getElementById('refreshBtn').disabled = false;
     reloadList();
     toast('⚠️ Missing credentials.json');
   } else if (foundCreds) {
@@ -440,7 +452,21 @@ document.getElementById('folderInput').addEventListener('change', async function
   } else {
     toast('❌ Neither file found in folder');
   }
+}
+
+// FOLDER PICKER & REFRESH EVENT HANDLERS
+document.getElementById('folderInput').addEventListener('change', function(e) {
+  processFiles(e.target.files);
 });
+
+function refreshFolderData() {
+  const input = document.getElementById('folderInput');
+  if (input && input.files && input.files.length > 0) {
+    processFiles(input.files);
+  } else {
+    toast('❌ Session lost. Please re-load folder manually.');
+  }
+}
 
 function startAuthRedirect() {
   if (!credentials) return toast('Load folder with credentials.json first!');
