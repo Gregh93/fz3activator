@@ -655,8 +655,8 @@ function updateActionBtns() {
     return;
   }
   
-  // Unlock: Requires selection
-  document.getElementById('unlockBtn').disabled = !hasToken || selectedNames.size === 0; 
+  // Unlock: Requires selection and that the timer isn't running
+  document.getElementById('unlockBtn').disabled = !hasToken || selectedNames.size === 0 || timerRunning; 
   
   // Lock Current: Requires an active session (timer running or files pending lock)
   document.getElementById('lockCurrentBtn').disabled = !hasToken || activeWFs.length === 0;
