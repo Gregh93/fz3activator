@@ -655,8 +655,13 @@ function updateActionBtns() {
     return;
   }
   
+  // Unlock: Requires selection
   document.getElementById('unlockBtn').disabled = !hasToken || selectedNames.size === 0; 
+  
+  // Lock Current: Requires an active session (timer running or files pending lock)
   document.getElementById('lockCurrentBtn').disabled = !hasToken || activeWFs.length === 0;
+  
+  // Lock All: Now only depends on being connected to Drive
   document.getElementById('lockAllBtn').disabled = !hasToken || totalLoaded === 0;
 }
 
