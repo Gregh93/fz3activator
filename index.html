@@ -178,21 +178,23 @@
     #actions { display: flex; gap: 8px; }
     .action-btn {
       flex: 1;
-      padding: 12px;
+      padding: 12px 6px;
       border-radius: 10px;
       border: none;
-      font-size: 1rem;
+      font-size: 0.85rem;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 4px;
+      white-space: nowrap;
     }
-    .action-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .action-btn:disabled { opacity: .3; cursor: not-allowed; }
     .action-btn:not(:disabled):active { filter: brightness(.85); }
-    #unlockBtn  { background: #2e6b31; color: #a5d6a7; }
-    #lockBtn    { background: #7a1a1a; color: #ef9a9a; }
+    #unlockBtn       { background: #2e6b31; color: #a5d6a7; }
+    #lockCurrentBtn  { background: #4a4a4a; color: #e8e8e8; }
+    #lockAllBtn      { background: #7a1a1a; color: #ef9a9a; }
 
     /* TIMER */
     #timerCard { display: none; margin-top: 4px; }
@@ -292,7 +294,8 @@
 
   <div id="actions">
     <button id="unlockBtn" class="action-btn" onclick="doUnlock()" disabled>🔓 Unlock</button>
-    <button id="lockBtn"   class="action-btn" onclick="doLock()"   disabled>🔒 Lock All</button>
+    <button id="lockCurrentBtn" class="action-btn" onclick="doLockCurrent()" disabled>🔒 Lock Current</button>
+    <button id="lockAllBtn" class="action-btn" onclick="doLockAll()" disabled>🔐 Lock All</button>
   </div>
 
   <div id="timerCard">
@@ -330,6 +333,7 @@ let totalMs       = 0;
 let timerRunning  = false;
 let hasCreds      = false;
 let hasWfs        = false;
+let isProcessing  = false;
 
 const SCOPES       = 'https://www.googleapis.com/auth/drive';
 const LS_CRED_KEY  = 'wfa_credentials';
@@ -515,19 +519,30 @@ function setDuration(min) {
 }
 
 async function doUnlock() {
-  setAllBtns(false);
+  if (isProcessing) return;
+  isProcessing = true;
+  updateActionBtns();
+
   activeWFs = [];
   for (const name of selectedNames) {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[name].id}/permissions`, {
-      method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
-      body: JSON.stringify({type: 'anyone', role: 'reader'})
-    });
-    if (res.ok) activeWFs.push({name, id: watchfaces[name].id});
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[name].id}/permissions`, {
+        method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
+        body: JSON.stringify({type: 'anyone', role: 'reader'})
+      });
+      if (res.ok) activeWFs.push({name, id: watchfaces[name].id});
+    } catch(e) { console.error(e); }
   }
-  document.getElementById('timerCard').classList.add('visible');
-  document.getElementById('lockBtn').disabled = false;
-  startCountdown();
-  toast('Unlocked ' + activeWFs.length + ' files');
+
+  isProcessing = false;
+  if (activeWFs.length > 0) {
+    document.getElementById('timerCard').classList.add('visible');
+    startCountdown();
+    toast('Unlocked ' + activeWFs.length + ' files');
+  } else {
+    toast('❌ Failed to unlock files');
+  }
+  updateActionBtns();
 }
 
 function startCountdown() {
@@ -540,30 +555,111 @@ function startCountdown() {
     const m = Math.floor(remainingMs/60000), s = Math.floor((remainingMs%60000)/1000);
     document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     document.getElementById('progressBar').style.width = (100 - (remainingMs/totalMs)*100) + '%';
-    if (remainingMs <= 0) { clearInterval(timerInterval); doLock(); }
+    
+    if (remainingMs <= 0) { 
+      clearInterval(timerInterval); 
+      timerRunning = false;
+      isProcessing = true;
+      updateActionBtns();
+      lockActiveWFs().then(() => {
+        document.getElementById('timerCard').classList.remove('visible');
+        toast('Timer expired. Session locked.');
+        activeWFs = [];
+        isProcessing = false;
+        updateActionBtns();
+      });
+    }
   }, 1000);
 }
 
-async function doLock() {
-  if (timerInterval) clearInterval(timerInterval);
+async function lockActiveWFs() {
   for (const wf of activeWFs) {
-    const list = await (await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions`, {headers: {'Authorization': 'Bearer ' + accessToken}})).json();
-    const p = list.permissions?.find(p => p.type === 'anyone');
-    if (p) await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions/${p.id}`, {method: 'DELETE', headers: {'Authorization': 'Bearer ' + accessToken}});
+    try {
+      const listRes = await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions`, {
+        headers: {'Authorization': 'Bearer ' + accessToken}
+      });
+      if (listRes.ok) {
+        const list = await listRes.json();
+        const p = list.permissions?.find(p => p.type === 'anyone');
+        if (p) await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions/${p.id}`, {method: 'DELETE', headers: {'Authorization': 'Bearer ' + accessToken}});
+      }
+    } catch(e) { console.error(e); }
   }
+}
+
+async function doLockCurrent() {
+  if (isProcessing) return;
+  isProcessing = true;
+  updateActionBtns();
+  
+  if (timerInterval) clearInterval(timerInterval);
+  timerRunning = false;
+  
+  await lockActiveWFs();
+  
   document.getElementById('timerCard').classList.remove('visible');
-  toast('Locked ' + activeWFs.length + ' files');
+  toast('Locked ' + activeWFs.length + ' active files');
   activeWFs = []; 
-  setAllBtns(true);
+  
+  isProcessing = false;
+  updateActionBtns();
+}
+
+async function doLockAll() {
+  if (isProcessing) return;
+  if (!confirm("Make all loaded watchfaces private?")) return;
+  
+  isProcessing = true;
+  updateActionBtns();
+  
+  if (timerInterval) clearInterval(timerInterval);
+  timerRunning = false;
+  document.getElementById('timerCard').classList.remove('visible');
+  
+  toast('🔒 Locking everything...');
+  
+  const allWfs = Object.values(watchfaces);
+  let lockedCount = 0;
+  
+  for (const wf of allWfs) {
+    try {
+      const listRes = await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions`, {
+        headers: {'Authorization': 'Bearer ' + accessToken}
+      });
+      if (listRes.ok) {
+        const list = await listRes.json();
+        const p = list.permissions?.find(p => p.type === 'anyone');
+        if (p) {
+          await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions/${p.id}`, {method: 'DELETE', headers: {'Authorization': 'Bearer ' + accessToken}});
+          lockedCount++;
+        }
+      }
+    } catch(e) { console.error(e); }
+  }
+  
+  toast('🔐 All Locked (' + lockedCount + ' files modified)');
+  activeWFs = [];
+  
+  isProcessing = false;
+  updateActionBtns();
 }
 
 function updateActionBtns() { 
-  document.getElementById('unlockBtn').disabled = !accessToken || selectedNames.size === 0; 
+  const hasToken = !!accessToken;
+  const totalLoaded = Object.keys(watchfaces).length;
+  
+  if (isProcessing) {
+    document.getElementById('unlockBtn').disabled = true;
+    document.getElementById('lockCurrentBtn').disabled = true;
+    document.getElementById('lockAllBtn').disabled = true;
+    return;
+  }
+  
+  document.getElementById('unlockBtn').disabled = !hasToken || selectedNames.size === 0; 
+  document.getElementById('lockCurrentBtn').disabled = !hasToken || activeWFs.length === 0;
+  document.getElementById('lockAllBtn').disabled = !hasToken || totalLoaded === 0;
 }
-function setAllBtns(enabled) { 
-  updateActionBtns();
-  document.getElementById('lockBtn').disabled = enabled && activeWFs.length === 0; 
-}
+
 function toast(msg) { 
   const t = document.getElementById('toast'); 
   t.textContent = msg; 
