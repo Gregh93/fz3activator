@@ -162,7 +162,6 @@
     /* BOTTOM CONTROLS (Sticky) */
     footer {
       background: var(--surface);
-      border-top: 1px solid var(--border);
       padding: 12px 14px 20px; /* Extra bottom padding for safe area */
       flex-shrink: 0;
       display: flex;
@@ -362,6 +361,14 @@ window.addEventListener('DOMContentLoaded', function() {
   restoreFromCache();
 });
 
+window.addEventListener('storage', function(e) {
+  // If the popup updates the token in localStorage, sync the main app
+  if (e.key === LS_TOKEN_KEY) {
+    restoreFromCache();
+    toast('✅ Drive Connected (Synced)');
+  }
+});
+
 function handleOAuthRedirect() {
   const hash = window.location.hash;
   if (!hash || !hash.includes('access_token')) return;
@@ -370,10 +377,21 @@ function handleOAuthRedirect() {
     const kv = part.split('=');
     params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
   });
+  
   if (params.access_token) {
     accessToken = params.access_token;
     const expiry = Date.now() + (parseInt(params.expires_in || 3600) - 60) * 1000;
     try { localStorage.setItem(LS_TOKEN_KEY, JSON.stringify({ token: accessToken, expiry: expiry })); } catch(e) {}
+    
+    // --- NEW: Handle popup closure ---
+    if (window.opener) {
+      window.close();
+      // Fallback message just in case the mobile OS blocks auto-closing
+      document.body.innerHTML = '<h3 style="text-align:center; padding:40px; color:white;">✅ Connected! You can close this screen and return to the app.</h3>';
+      return;
+    }
+    // ---------------------------------
+
     history.replaceState(null, '', window.location.pathname + window.location.search);
     document.getElementById('driveDot').className = 'status-dot ok';
     document.getElementById('connectBtn').classList.add('ok');
@@ -475,7 +493,9 @@ function startAuthRedirect() {
     '&redirect_uri=' + encodeURIComponent(window.location.origin + window.location.pathname) +
     '&response_type=token' +
     '&scope=' + encodeURIComponent(SCOPES);
-  window.location.href = authUrl;
+  
+  // Open in a popup/new tab instead of redirecting the PWA window
+  window.open(authUrl, 'GoogleAuth', 'width=500,height=600');
 }
 
 function parseWatchfaces(text) {
