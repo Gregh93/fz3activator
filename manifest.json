@@ -1,6 +1,6 @@
 {
-  "name": "Watchface QR Activator",
-  "short_name": "WF Activator",
+  "name": "FZ3 Watchfaces Activator",
+  "short_name": "FZ3 Watchfaces Activator",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1a1a1a",
