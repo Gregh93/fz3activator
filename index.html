@@ -185,6 +185,11 @@
     }
     .preset-btn.active { border-color: var(--sel); background: #1c3a5e; }
     .preset-btn:active { background: var(--accent); }
+	.preset-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+		pointer-events: none;
+	}
 
     /* ACTION BUTTONS */
     #actions { display: flex; gap: 8px; }
@@ -568,7 +573,6 @@ function updateSelCount() { document.getElementById('selCount').textContent = se
 function setDuration(min) {
   durMinutes = min;
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.min) === min));
-  if (timerRunning) { remainingMs += (min - 5) * 60 * 1000; totalMs += (min - 5) * 60 * 1000; }
 }
 
 async function doUnlock() {
@@ -707,6 +711,7 @@ function updateActionBtns() {
     document.getElementById('lockAllBtn').disabled = true;
     return;
   }
+  document.querySelectorAll('.preset-btn').forEach(b => b.disabled = timerRunning || isProcessing);
   
   // Unlock: Requires selection and that the timer isn't running
   document.getElementById('unlockBtn').disabled = !hasToken || selectedNames.size === 0 || timerRunning; 
