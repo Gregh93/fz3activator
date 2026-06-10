@@ -25,79 +25,39 @@
       background: var(--bg);
       color: var(--text);
       font-family: 'Segoe UI', system-ui, sans-serif;
-      min-height: 100dvh;
+      height: 100dvh; /* Lock to viewport */
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
     header {
       background: var(--surface);
-      padding: 18px 16px 14px;
-      text-align: center;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: .5px; }
-    header p  { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
 
-    main {
-      flex: 1;
+    /* COMPACT SETUP BAR */
+    #setupBar {
       display: flex;
-      flex-direction: column;
-      padding: 12px 14px;
-      gap: 12px;
-      max-width: 560px;
-      width: 100%;
-      margin: 0 auto;
-    }
-
-    .card {
+      gap: 8px;
+      padding: 10px 14px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
-    .card-title {
-      font-size: .75rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .8px;
-      margin-bottom: 10px;
-    }
-
-    /* FILE ROWS */
-    .file-row {
+    .setup-btn {
+      flex: 1;
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .file-row:last-child { margin-bottom: 0; }
-    .file-label {
-      font-size: .78rem;
-      color: var(--muted);
-      width: 110px;
-      flex-shrink: 0;
-    }
-    .file-name {
-      flex: 1;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 10px;
-      font-size: .8rem;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .file-name.loaded { color: var(--green); border-color: #2e5c30; }
-    .file-name.loaded.cached { color: #81c784; border-color: #1e4020; }
-    .file-name.error  { color: var(--red);   border-color: #5c2e2e; }
-    .pick-btn {
-      flex-shrink: 0;
-      padding: 7px 12px;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px;
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -105,111 +65,111 @@
       font-size: .8rem;
       font-weight: 600;
       cursor: pointer;
-      white-space: nowrap;
     }
-    .pick-btn:active { background: var(--accent); }
-
-    /* DRIVE STATUS */
-    #statusRow {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    #statusDot {
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      background: var(--muted);
-      flex-shrink: 0;
-    }
-    #statusDot.ok   { background: var(--green); }
-    #statusDot.err  { background: var(--red); }
-    #statusDot.warn { background: var(--orange); animation: pulse 1.5s infinite; }
+    .setup-btn:active { background: var(--accent); }
+    .setup-btn.ok { border-color: var(--green); color: var(--green); }
+    
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+    .status-dot.ok { background: var(--green); }
+    .status-dot.warn { background: var(--orange); animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    #statusText { font-size: .9rem; flex: 1; }
-    #connectBtn {
-      font-size: .78rem;
-      padding: 6px 12px;
-      border-radius: 6px;
-      background: #1a3a6a;
-      color: #90caf9;
-      font-weight: 700;
-      border: 1px solid #2a5a9a;
-      cursor: pointer;
-      display: none;
-    }
-    #connectBtn:active { background: #254a80; }
 
-    /* WATCHFACE LIST */
+    /* WATCHFACE LIST AREA */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 14px;
+      gap: 10px;
+      overflow: hidden; /* Prevent body scroll */
+    }
+
     .list-toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      flex-shrink: 0;
     }
     .list-toolbar span { font-size: .75rem; color: var(--muted); }
+    
+    #watchFilter {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: .8rem;
+      padding: 6px 8px;
+      outline: none;
+      flex: 1;
+      margin-right: 8px;
+    }
+
     .toolbar-btns { display: flex; gap: 6px; }
     .icon-btn {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text);
-      font-size: .82rem;
-      padding: 5px 9px;
+      font-size: .8rem;
+      padding: 6px 10px;
       cursor: pointer;
     }
     .icon-btn:active { background: var(--accent); }
 
-    #watchList {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      max-height: 220px;
+    .list-container {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       overflow-y: auto;
       overscroll-behavior: contain;
     }
-    #watchList::-webkit-scrollbar { width: 4px; }
-    #watchList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    
+    #watchList { list-style: none; display: flex; flex-direction: column; }
     #watchList li {
-      padding: 10px 12px;
-      border-radius: 8px;
+      padding: 12px 14px;
       cursor: pointer;
-      background: var(--surface2);
       font-size: .9rem;
       user-select: none;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border: 1.5px solid transparent;
-      transition: background .12s, border-color .12s;
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
     }
-    #watchList li:active { background: var(--accent); }
-    #watchList li.selected { border-color: var(--sel); background: #1c3a5e; }
+    #watchList li:last-child { border-bottom: none; }
+    #watchList li:active { background: var(--surface2); }
+    #watchList li.selected { background: #1c3a5e; border-bottom-color: #2a5080; }
     #watchList li .wf-name { font-weight: 500; }
-    #watchList li .wf-meta { font-size: .72rem; color: var(--muted); }
-    .empty-msg {
-      text-align: center;
-      color: var(--muted);
-      font-size: .85rem;
-      padding: 18px 0;
+    #watchList li .wf-meta { font-size: .75rem; color: var(--muted); }
+    #watchList li.selected .wf-meta { color: #90caf9; }
+    
+    .empty-msg { text-align: center; color: var(--muted); font-size: .85rem; padding: 20px; }
+
+    /* BOTTOM CONTROLS (Sticky) */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 14px 20px; /* Extra bottom padding for safe area */
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     /* DURATION PRESETS */
-    #presets { display: flex; gap: 8px; align-items: center; }
-    #presets label { font-size: .82rem; color: var(--muted); margin-right: 2px; }
+    #presets { display: flex; gap: 6px; }
     .preset-btn {
       flex: 1;
-      padding: 9px 4px;
+      padding: 8px 0;
       border-radius: 8px;
       background: var(--surface2);
       border: 1.5px solid transparent;
       color: var(--text);
-      font-size: .88rem;
+      font-size: .85rem;
       font-weight: 700;
       cursor: pointer;
-      text-align: center;
-      transition: background .12s, border-color .12s;
+      transition: all .12s;
     }
     .preset-btn.active { border-color: var(--sel); background: #1c3a5e; }
     .preset-btn:active { background: var(--accent); }
@@ -218,7 +178,7 @@
     #actions { display: flex; gap: 8px; }
     .action-btn {
       flex: 1;
-      padding: 13px 8px;
+      padding: 12px;
       border-radius: 10px;
       border: none;
       font-size: 1rem;
@@ -228,16 +188,14 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: opacity .15s, filter .15s;
     }
     .action-btn:disabled { opacity: .4; cursor: not-allowed; }
     .action-btn:not(:disabled):active { filter: brightness(.85); }
     #unlockBtn  { background: #2e6b31; color: #a5d6a7; }
     #lockBtn    { background: #7a1a1a; color: #ef9a9a; }
-    #lockAllBtn { background: #5a1a1a; color: #ef9a9a; }
 
     /* TIMER */
-    #timerCard { display: none; }
+    #timerCard { display: none; margin-top: 4px; }
     #timerCard.visible { display: block; }
     .timer-row { display: flex; align-items: center; gap: 12px; }
     #progressWrap {
@@ -255,134 +213,110 @@
       transition: width .5s linear;
     }
     #timerDisplay {
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--text);
-      min-width: 70px;
+      min-width: 60px;
       text-align: right;
-    }
-    #timerStatus {
-      font-size: .88rem;
-      color: var(--orange);
-      margin-bottom: 10px;
-      min-height: 1.2em;
     }
 
     /* TOAST */
     #toast {
       position: fixed;
-      bottom: 24px;
+      bottom: 120px;
       left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: #333;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(40,40,40,0.95);
+      border: 1px solid var(--border);
       color: #fff;
-      padding: 10px 18px;
+      padding: 10px 20px;
       border-radius: 20px;
       font-size: .85rem;
       white-space: nowrap;
       pointer-events: none;
-      transition: transform .25s ease, opacity .25s ease;
       opacity: 0;
+      transition: all .25s ease;
       z-index: 100;
     }
     #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    #credInput, #wfInput { display: none; }
+    #folderInput { display: none; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>🕐 Watchface Activator</h1>
-  <p>FZ3 · Google Drive Temporary Access</p>
+  <h1>🕐 Watchfaces QR Activator</h1>
+  <span id="selCount">0 selected</span>
 </header>
 
+<div id="setupBar">
+  <input type="file" id="folderInput" webkitdirectory directory multiple />
+  
+  <button id="folderBtn" class="setup-btn" onclick="document.getElementById('folderInput').click()">
+    <div id="fileDot" class="status-dot"></div>
+    📂 Load Folder
+  </button>
+  
+  <button id="connectBtn" class="setup-btn" onclick="startAuthRedirect()">
+    <div id="driveDot" class="status-dot"></div>
+    🔑 Connect Drive
+  </button>
+</div>
+
 <main>
-
-  <!-- DATA FILES -->
-  <div class="card">
-    <div class="card-title">Data Files</div>
-    <div class="file-row">
-      <span class="file-label">credentials.json</span>
-      <div class="file-name" id="credName">Not loaded</div>
-      <button class="pick-btn" onclick="document.getElementById('credInput').click()">📂 Load</button>
-    </div>
-    <div class="file-row">
-      <span class="file-label">watchfaces.txt</span>
-      <div class="file-name" id="wfName">Not loaded</div>
-      <button class="pick-btn" onclick="document.getElementById('wfInput').click()">📂 Load</button>
+  <div class="list-toolbar">
+    <select id="watchFilter" onchange="renderList()">
+      <option value="all">All Watches</option>
+    </select>
+    <div class="toolbar-btns">
+      <button class="icon-btn" onclick="selectAll()">✓ All</button>
     </div>
   </div>
 
-  <input type="file" id="credInput" accept=".json,application/json" />
-  <input type="file" id="wfInput"   accept=".txt,text/plain" />
-
-  <!-- GOOGLE DRIVE STATUS -->
-  <div class="card">
-    <div class="card-title">Google Drive</div>
-    <div id="statusRow">
-      <div id="statusDot"></div>
-      <span id="statusText">Load credentials.json to connect</span>
-      <button id="connectBtn" onclick="startAuthRedirect()">🔑 Sign in with Google</button>
-    </div>
-  </div>
-
-  <!-- WATCHFACE LIST -->
-  <div class="card">
-    <div class="card-title">Watchfaces</div>
-    <div class="list-toolbar">
-      <span id="selCount">0 selected</span>
-      <div class="toolbar-btns">
-        <button class="icon-btn" onclick="selectAll()">✓ All</button>
-        <button class="icon-btn" onclick="reloadList()">🔄</button>
-      </div>
-    </div>
+  <div class="list-container">
     <ul id="watchList">
-      <li><div class="empty-msg">Load watchfaces.txt to see list</div></li>
+      <li><div class="empty-msg">Load folder containing data to begin</div></li>
     </ul>
   </div>
+</main>
 
-  <!-- DURATION PRESETS -->
-  <div class="card">
-    <div class="card-title">Duration</div>
-    <div id="presets">
-      <label>⏱</label>
-      <button class="preset-btn" data-min="1"  onclick="setDuration(1)">1m</button>
-      <button class="preset-btn" data-min="3"  onclick="setDuration(3)">3m</button>
-      <button class="preset-btn active" data-min="5" onclick="setDuration(5)">5m</button>
-      <button class="preset-btn" data-min="10" onclick="setDuration(10)">10m</button>
-      <button class="preset-btn" data-min="30" onclick="setDuration(30)">30m</button>
-    </div>
+<footer>
+  <div id="presets">
+    <button class="preset-btn" data-min="1"  onclick="setDuration(1)">1m</button>
+    <button class="preset-btn" data-min="3"  onclick="setDuration(3)">3m</button>
+    <button class="preset-btn active" data-min="5" onclick="setDuration(5)">5m</button>
+    <button class="preset-btn" data-min="10" onclick="setDuration(10)">10m</button>
   </div>
 
-  <!-- ACTIONS -->
-  <div class="card">
-    <div class="card-title">Actions</div>
-    <div id="actions">
-      <button id="unlockBtn"  class="action-btn" onclick="doUnlock()"  disabled>🔓 Unlock</button>
-      <button id="lockBtn"    class="action-btn" onclick="doLock()"    disabled>🔒 Lock</button>
-      <button id="lockAllBtn" class="action-btn" onclick="doLockAll()" disabled>🔐 Lock All</button>
-    </div>
+  <div id="actions">
+    <button id="unlockBtn" class="action-btn" onclick="doUnlock()" disabled>🔓 Unlock</button>
+    <button id="lockBtn"   class="action-btn" onclick="doLock()"   disabled>🔒 Lock All</button>
   </div>
 
-  <!-- TIMER -->
-  <div class="card" id="timerCard">
-    <div id="timerStatus"></div>
+  <div id="timerCard">
     <div class="timer-row">
       <div id="progressWrap"><div id="progressBar"></div></div>
       <div id="timerDisplay">--:--</div>
     </div>
   </div>
-
-</main>
+</footer>
 
 <div id="toast"></div>
 
 <script>
-/* ════════════════════════════════════════
-   STATE
-════════════════════════════════════════ */
+// --- Embedded Watch Mapping ---
+const WATCH_MAP = {
+  "bip6": "Amazfit Bip 6",
+  "activemax": "Amazfit Active Max",
+  "bipmax": "Amazfit Bip Max"
+};
+
+function getWatchName(id) {
+  return WATCH_MAP[id.toLowerCase()] || id;
+}
+
 let accessToken   = null;
 let credentials   = null;
 let watchfaces    = {};
@@ -394,167 +328,129 @@ let timerInterval = null;
 let remainingMs   = 0;
 let totalMs       = 0;
 let timerRunning  = false;
+let hasCreds      = false;
+let hasWfs        = false;
 
 const SCOPES       = 'https://www.googleapis.com/auth/drive';
 const LS_CRED_KEY  = 'wfa_credentials';
 const LS_WF_KEY    = 'wfa_watchfaces';
-const LS_TOKEN_KEY = 'wfa_token_expiry'; // stores {token, expiry}
+const LS_TOKEN_KEY = 'wfa_token_expiry'; 
 
-/* ════════════════════════════════════════
-   STARTUP — handle redirect token + load cache
-════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', function() {
-  // 1. Check if we're returning from a Google OAuth redirect
   handleOAuthRedirect();
-
-  // 2. Restore cached files from localStorage
   restoreFromCache();
 });
 
 function handleOAuthRedirect() {
-  // Google returns token in the URL hash: #access_token=...&expires_in=...
   const hash = window.location.hash;
   if (!hash || !hash.includes('access_token')) return;
-
   const params = {};
   hash.slice(1).split('&').forEach(function(part) {
     const kv = part.split('=');
     params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
   });
-
   if (params.access_token) {
     accessToken = params.access_token;
-
-    // Cache token with expiry time
     const expiry = Date.now() + (parseInt(params.expires_in || 3600) - 60) * 1000;
     try { localStorage.setItem(LS_TOKEN_KEY, JSON.stringify({ token: accessToken, expiry: expiry })); } catch(e) {}
-
-    // Clean the token from the URL bar so it's not visible / accidentally shared
     history.replaceState(null, '', window.location.pathname + window.location.search);
-
-    setStatus('ok', 'Connected to Google Drive', false);
+    document.getElementById('driveDot').className = 'status-dot ok';
+    document.getElementById('connectBtn').classList.add('ok');
     updateActionBtns();
-    toast('✅ Google Drive connected');
-  }
-
-  if (params.error) {
-    setStatus('err', 'Auth error: ' + params.error, true);
+    toast('✅ Drive Connected');
   }
 }
 
 function restoreFromCache() {
-  // Restore cached token if not expired
   try {
-    const raw = localStorage.getItem(LS_TOKEN_KEY);
-    if (raw) {
-      const obj = JSON.parse(raw);
+    const rawTok = localStorage.getItem(LS_TOKEN_KEY);
+    if (rawTok) {
+      const obj = JSON.parse(rawTok);
       if (obj.token && obj.expiry > Date.now()) {
         accessToken = obj.token;
-        setStatus('ok', 'Connected to Google Drive', false);
+        document.getElementById('driveDot').className = 'status-dot ok';
+        document.getElementById('connectBtn').classList.add('ok');
         updateActionBtns();
       }
     }
   } catch(e) {}
 
-  // Restore credentials.json
   try {
-    const raw = localStorage.getItem(LS_CRED_KEY);
-    if (raw) {
-      credentials = JSON.parse(raw);
-      setFileStatus('cred', true, 'credentials.json', true);
-      if (!accessToken) setStatus('warn', 'Tap Sign in to connect', true);
-    }
-  } catch(e) {}
-
-  // Restore watchfaces.txt
-  try {
-    const raw = localStorage.getItem(LS_WF_KEY);
-    if (raw) {
-      watchfaceText = raw;
-      setFileStatus('wf', true, 'watchfaces.txt (cached)', true);
+    if (localStorage.getItem(LS_CRED_KEY)) { credentials = JSON.parse(localStorage.getItem(LS_CRED_KEY)); hasCreds = true; }
+    if (localStorage.getItem(LS_WF_KEY)) { watchfaceText = localStorage.getItem(LS_WF_KEY); hasWfs = true; }
+    
+    if (hasCreds && hasWfs) {
+      document.getElementById('fileDot').className = 'status-dot ok';
+      document.getElementById('folderBtn').classList.add('ok');
       reloadList();
     }
   } catch(e) {}
 }
 
-/* ════════════════════════════════════════
-   FILE INPUTS
-════════════════════════════════════════ */
-document.getElementById('credInput').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    try {
-      const parsed = JSON.parse(ev.target.result);
-      credentials = parsed.installed || parsed.web;
-      if (!credentials) throw new Error('Unrecognized format');
-      // Cache it
-      try { localStorage.setItem(LS_CRED_KEY, JSON.stringify(credentials)); } catch(ex) {}
-      setFileStatus('cred', true, file.name, false);
-      if (!accessToken) setStatus('warn', 'Tap Sign in to connect', true);
-      toast('✅ credentials.json loaded & saved');
-    } catch(err) {
-      setFileStatus('cred', false, 'Invalid: ' + err.message, false);
+// FOLDER PICKER LOGIC
+document.getElementById('folderInput').addEventListener('change', async function(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+  
+  let foundCreds = false;
+  let foundWFs = false;
+
+  for (let file of files) {
+    if (file.name === 'credentials.json') {
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        credentials = parsed.installed || parsed.web;
+        localStorage.setItem(LS_CRED_KEY, JSON.stringify(credentials));
+        foundCreds = true;
+        hasCreds = true;
+      } catch(err) { toast('Error parsing credentials'); }
     }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
-
-document.getElementById('wfInput').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    watchfaceText = ev.target.result;
-    // Cache it
-    try { localStorage.setItem(LS_WF_KEY, watchfaceText); } catch(ex) {}
-    setFileStatus('wf', true, file.name, false);
-    reloadList();
-    toast('✅ watchfaces.txt loaded & saved (' + Object.keys(watchfaces).length + ' entries)');
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
-
-function setFileStatus(which, ok, label, cached) {
-  const el = document.getElementById(which === 'cred' ? 'credName' : 'wfName');
-  el.textContent = label;
-  el.className   = 'file-name' + (ok ? ' loaded' + (cached ? ' cached' : '') : ' error');
-}
-
-/* ════════════════════════════════════════
-   WATCHFACES.TXT
-════════════════════════════════════════ */
-function extractFileId(s) {
-  if (s.includes('drive.google.com')) {
-    const m = s.match(/(?:id=|[ /]d\/)([a-zA-Z0-9_-]+)/);
-    if (m) return m[1];
+    if (file.name === 'watchfaces.txt') {
+      try {
+        watchfaceText = await file.text();
+        localStorage.setItem(LS_WF_KEY, watchfaceText);
+        foundWFs = true;
+        hasWfs = true;
+      } catch(err) { toast('Error reading watchfaces'); }
+    }
   }
-  return s.trim();
+
+  if (foundCreds && foundWFs) {
+    document.getElementById('fileDot').className = 'status-dot ok';
+    document.getElementById('folderBtn').classList.add('ok');
+    reloadList();
+    toast('✅ Folder Data Loaded');
+  } else if (foundWFs) {
+    reloadList();
+    toast('⚠️ Missing credentials.json');
+  } else if (foundCreds) {
+    toast('⚠️ Missing watchfaces.txt');
+  } else {
+    toast('❌ Neither file found in folder');
+  }
+});
+
+function startAuthRedirect() {
+  if (!credentials) return toast('Load folder with credentials.json first!');
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth' +
+    '?client_id=' + encodeURIComponent(credentials.client_id) +
+    '&redirect_uri=' + encodeURIComponent(window.location.origin + window.location.pathname) +
+    '&response_type=token' +
+    '&scope=' + encodeURIComponent(SCOPES);
+  window.location.href = authUrl;
 }
 
 function parseWatchfaces(text) {
   const result = {};
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    if (!line || line.startsWith('#')) continue;
-    if (line.includes(' | ')) {
-      const parts = line.split(' | ');
-      if (parts.length >= 2) {
-        result[parts[0].trim()] = {
-          id:       extractFileId(parts[1].trim()),
-          lang:     (parts[2] || 'Unknown').trim(),
-          watch_id: (parts[3] || 'unknown').trim()
-        };
-      }
-    } else if (line.includes(' - ')) {
-      const idx  = line.lastIndexOf(' - ');
-      const name = line.slice(0, idx).trim();
-      result[name] = { id: extractFileId(line.slice(idx + 3).trim()), lang: 'Italian', watch_id: 'unknown' };
+  text.split('\n').forEach(line => {
+    line = line.trim();
+    if (!line || line.startsWith('#')) return;
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length >= 2) {
+      result[parts[0]] = { id: parts[1].replace(/(?:id=|[ /]d\/)([a-zA-Z0-9_-]+)/, '$1'), watch_id: parts[3] || 'unknown' };
     }
-  }
+  });
   return result;
 }
 
@@ -562,266 +458,117 @@ function reloadList() {
   if (!watchfaceText) return;
   watchfaces = parseWatchfaces(watchfaceText);
   selectedNames.clear();
+  populateFilter();
   renderList();
-  updateSelCount();
-  updateActionBtns();
+}
+
+function populateFilter() {
+  const filterEl = document.getElementById('watchFilter');
+  const ids = new Set(Object.values(watchfaces).map(w => w.watch_id));
+  filterEl.innerHTML = '<option value="all">All Watches</option>';
+  Array.from(ids).sort().forEach(id => {
+    const opt = document.createElement('option');
+    opt.value = id; 
+    opt.textContent = getWatchName(id);
+    filterEl.appendChild(opt);
+  });
 }
 
 function renderList() {
-  const ul   = document.getElementById('watchList');
-  const keys = Object.keys(watchfaces).sort(function(a,b){ return a.toLowerCase().localeCompare(b.toLowerCase()); });
+  const ul = document.getElementById('watchList');
+  const filterVal = document.getElementById('watchFilter').value;
   ul.innerHTML = '';
-  if (!keys.length) {
-    ul.innerHTML = '<li><div class="empty-msg">No entries found in watchfaces.txt</div></li>';
-    return;
-  }
-  for (const name of keys) {
-    const d  = watchfaces[name];
-    const li = document.createElement('li');
-    if (selectedNames.has(name)) li.classList.add('selected');
-    li.innerHTML = '<span class="wf-name">' + escHtml(name) + '</span>' +
-                   '<span class="wf-meta">' + escHtml(d.lang) + ' · ' + escHtml(d.watch_id) + '</span>';
-    li.addEventListener('click', function() { toggleSelect(name, li); });
-    ul.appendChild(li);
-  }
-}
-
-function toggleSelect(name, li) {
-  if (selectedNames.has(name)) { selectedNames.delete(name); li.classList.remove('selected'); }
-  else                         { selectedNames.add(name);    li.classList.add('selected');    }
-  updateSelCount();
-  updateActionBtns();
+  Object.keys(watchfaces).sort().forEach(name => {
+    if (filterVal === 'all' || watchfaces[name].watch_id === filterVal) {
+      const li = document.createElement('li');
+      li.className = selectedNames.has(name) ? 'selected' : '';
+      
+      const niceName = getWatchName(watchfaces[name].watch_id);
+      
+      li.innerHTML = `<span class="wf-name">${name}</span><span class="wf-meta">${niceName}</span>`;
+      li.onclick = () => {
+        selectedNames.has(name) ? selectedNames.delete(name) : selectedNames.add(name);
+        renderList(); updateSelCount(); updateActionBtns();
+      };
+      ul.appendChild(li);
+    }
+  });
 }
 
 function selectAll() {
-  const keys   = Object.keys(watchfaces);
-  const allSel = keys.length > 0 && keys.every(function(k){ return selectedNames.has(k); });
-  if (allSel) { selectedNames.clear(); }
-  else        { keys.forEach(function(k){ selectedNames.add(k); }); }
-  renderList();
-  updateSelCount();
-  updateActionBtns();
+  const filterVal = document.getElementById('watchFilter').value;
+  const targetNames = Object.keys(watchfaces).filter(name => filterVal === 'all' || watchfaces[name].watch_id === filterVal);
+  
+  // Toggle behavior: if all visible are selected, deselect them. Otherwise select all.
+  const allSelected = targetNames.every(name => selectedNames.has(name));
+  targetNames.forEach(name => allSelected ? selectedNames.delete(name) : selectedNames.add(name));
+  
+  renderList(); updateSelCount(); updateActionBtns();
 }
 
-function updateSelCount() {
-  document.getElementById('selCount').textContent = selectedNames.size + ' selected';
-}
+function updateSelCount() { document.getElementById('selCount').textContent = selectedNames.size + ' selected'; }
 
-/* ════════════════════════════════════════
-   GOOGLE AUTH — redirect flow (works in WebView)
-════════════════════════════════════════ */
-function startAuthRedirect() {
-  if (!credentials) {
-    toast('Load credentials.json first');
-    return;
-  }
-
-  // Build the Google OAuth URL manually — no popup, just a full redirect
-  const redirectUri  = window.location.href.split('#')[0].split('?')[0]; // current page, clean
-  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth' +
-    '?client_id='     + encodeURIComponent(credentials.client_id) +
-    '&redirect_uri='  + encodeURIComponent(redirectUri) +
-    '&response_type=token' +
-    '&scope='         + encodeURIComponent(SCOPES) +
-    '&prompt=select_account';
-
-  // Save current page state to sessionStorage so we can restore after redirect
-  try {
-    if (watchfaceText) sessionStorage.setItem('wfa_wf_pending', '1');
-  } catch(e) {}
-
-  window.location.href = authUrl;
-}
-
-/* ════════════════════════════════════════
-   DRIVE API
-════════════════════════════════════════ */
-async function makePublic(fileId) {
-  const res = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '/permissions', {
-    method:  'POST',
-    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ type: 'anyone', role: 'reader' })
-  });
-  return res.ok;
-}
-
-async function makePrivate(fileId) {
-  const listRes = await fetch(
-    'https://www.googleapis.com/drive/v3/files/' + fileId + '/permissions?fields=permissions(id,type)',
-    { headers: { 'Authorization': 'Bearer ' + accessToken } }
-  );
-  if (!listRes.ok) return false;
-  const data  = await listRes.json();
-  const perms = (data.permissions || []).filter(function(p){ return p.type === 'anyone'; });
-  for (const perm of perms) {
-    await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '/permissions/' + perm.id, {
-      method:  'DELETE',
-      headers: { 'Authorization': 'Bearer ' + accessToken }
-    });
-  }
-  return true;
-}
-
-/* ════════════════════════════════════════
-   ACTIONS
-════════════════════════════════════════ */
-async function doUnlock() {
-  if (!accessToken)        { toast('Connect to Google Drive first'); return; }
-  if (!selectedNames.size) { toast('Select at least one watchface'); return; }
-
-  setAllBtns(false);
-  activeWFs = [];
-  let count = 0;
-
-  for (const name of selectedNames) {
-    const d = watchfaces[name];
-    if (!d) continue;
-    const ok = await makePublic(d.id);
-    if (ok) { activeWFs.push({ name: name, id: d.id }); count++; }
-  }
-
-  if (count === 0) { toast('❌ Failed to unlock'); setAllBtns(true); return; }
-
-  const label = count === 1 ? activeWFs[0].name + ' is active' : count + ' Watchfaces active';
-  setTimerStatus('✓ ' + label);
-  showTimerCard(true);
-  document.getElementById('lockBtn').disabled    = false;
-  document.getElementById('lockAllBtn').disabled = false;
-  startCountdown();
-  toast('🔓 ' + label);
-}
-
-async function doLock() {
-  if (!activeWFs.length) return;
-  stopCountdown();
-  await lockActiveWFs();
-}
-
-async function doLockAll() {
-  if (!confirm('Make ALL watchfaces private?')) return;
-  stopCountdown();
-  setTimerStatus('🔐 Locking all…');
-  for (const d of Object.values(watchfaces)) await makePrivate(d.id);
-  activeWFs = [];
-  setTimerStatus('🔐 All Locked');
-  setTimeout(function(){ showTimerCard(false); }, 2000);
-  resetActionBtns();
-  toast('🔐 All watchfaces locked');
-}
-
-async function lockActiveWFs() {
-  const count = activeWFs.length;
-  for (const wf of activeWFs) await makePrivate(wf.id);
-  const label = count === 1 ? activeWFs[0].name + ' deactivated' : count + ' Watchfaces deactivated';
-  setTimerStatus('🔒 ' + label);
-  activeWFs = [];
-  setTimeout(function(){ showTimerCard(false); }, 2000);
-  resetActionBtns();
-  toast('🔒 ' + label);
-}
-
-/* ════════════════════════════════════════
-   TIMER
-════════════════════════════════════════ */
 function setDuration(min) {
   durMinutes = min;
-  document.querySelectorAll('.preset-btn').forEach(function(b){
-    b.classList.toggle('active', parseInt(b.dataset.min) === min);
-  });
-  if (timerRunning) {
-    remainingMs += min * 60 * 1000;
-    totalMs     += min * 60 * 1000;
-    toast('+' + min + 'm added');
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.min) === min));
+  if (timerRunning) { remainingMs += (min - 5) * 60 * 1000; totalMs += (min - 5) * 60 * 1000; }
+}
+
+async function doUnlock() {
+  setAllBtns(false);
+  activeWFs = [];
+  for (const name of selectedNames) {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[name].id}/permissions`, {
+      method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
+      body: JSON.stringify({type: 'anyone', role: 'reader'})
+    });
+    if (res.ok) activeWFs.push({name, id: watchfaces[name].id});
   }
+  document.getElementById('timerCard').classList.add('visible');
+  document.getElementById('lockBtn').disabled = false;
+  startCountdown();
+  toast('Unlocked ' + activeWFs.length + ' files');
 }
 
 function startCountdown() {
-  remainingMs  = durMinutes * 60 * 1000;
-  totalMs      = remainingMs;
+  remainingMs = durMinutes * 60 * 1000; totalMs = remainingMs;
   timerRunning = true;
-  updateTimerDisplay();
-  timerInterval = setInterval(tickTimer, 1000);
+  
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    remainingMs -= 1000;
+    const m = Math.floor(remainingMs/60000), s = Math.floor((remainingMs%60000)/1000);
+    document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    document.getElementById('progressBar').style.width = (100 - (remainingMs/totalMs)*100) + '%';
+    if (remainingMs <= 0) { clearInterval(timerInterval); doLock(); }
+  }, 1000);
 }
 
-function tickTimer() {
-  remainingMs -= 1000;
-  if (remainingMs <= 0) {
-    remainingMs = 0;
-    updateTimerDisplay();
-    stopCountdown();
-    lockActiveWFs();
-    return;
+async function doLock() {
+  if (timerInterval) clearInterval(timerInterval);
+  for (const wf of activeWFs) {
+    const list = await (await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions`, {headers: {'Authorization': 'Bearer ' + accessToken}})).json();
+    const p = list.permissions?.find(p => p.type === 'anyone');
+    if (p) await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions/${p.id}`, {method: 'DELETE', headers: {'Authorization': 'Bearer ' + accessToken}});
   }
-  updateTimerDisplay();
+  document.getElementById('timerCard').classList.remove('visible');
+  toast('Locked ' + activeWFs.length + ' files');
+  activeWFs = []; 
+  setAllBtns(true);
 }
 
-function stopCountdown() {
-  clearInterval(timerInterval);
-  timerInterval = null;
-  timerRunning  = false;
+function updateActionBtns() { 
+  document.getElementById('unlockBtn').disabled = !accessToken || selectedNames.size === 0; 
 }
-
-function updateTimerDisplay() {
-  const s   = Math.ceil(remainingMs / 1000);
-  const m   = Math.floor(s / 60);
-  const sec = s % 60;
-  document.getElementById('timerDisplay').textContent =
-    String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
-  const pct = totalMs > 0 ? ((totalMs - remainingMs) / totalMs * 100) : 0;
-  document.getElementById('progressBar').style.width = pct + '%';
+function setAllBtns(enabled) { 
+  updateActionBtns();
+  document.getElementById('lockBtn').disabled = enabled && activeWFs.length === 0; 
 }
-
-/* ════════════════════════════════════════
-   UI HELPERS
-════════════════════════════════════════ */
-function showTimerCard(show) {
-  document.getElementById('timerCard').classList.toggle('visible', show);
-  if (!show) {
-    document.getElementById('timerDisplay').textContent = '--:--';
-    document.getElementById('progressBar').style.width  = '0%';
-    document.getElementById('timerStatus').textContent   = '';
-  }
-}
-function setTimerStatus(msg){ document.getElementById('timerStatus').textContent = msg; }
-
-function setStatus(type, msg, showBtn) {
-  document.getElementById('statusDot').className    = type;
-  document.getElementById('statusText').textContent = msg;
-  document.getElementById('connectBtn').style.display = showBtn ? 'inline-block' : 'none';
-}
-
-function updateActionBtns() {
-  const hasDrive = !!accessToken;
-  const hasSel   = selectedNames.size > 0;
-  const hasWFs   = Object.keys(watchfaces).length > 0;
-  document.getElementById('unlockBtn').disabled  = !(hasDrive && hasSel);
-  document.getElementById('lockBtn').disabled    = !(hasDrive && activeWFs.length > 0);
-  document.getElementById('lockAllBtn').disabled = !(hasDrive && hasWFs);
-}
-
-function resetActionBtns() {
-  document.getElementById('unlockBtn').disabled  = !(accessToken && selectedNames.size > 0);
-  document.getElementById('lockBtn').disabled    = true;
-  document.getElementById('lockAllBtn').disabled = !(accessToken && Object.keys(watchfaces).length > 0);
-}
-
-function setAllBtns(enabled) {
-  ['unlockBtn','lockBtn','lockAllBtn'].forEach(function(id){
-    document.getElementById(id).disabled = !enabled;
-  });
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-let toastTimer;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2800);
+function toast(msg) { 
+  const t = document.getElementById('toast'); 
+  t.textContent = msg; 
+  t.classList.add('show'); 
+  setTimeout(()=>t.classList.remove('show'), 2500); 
 }
 </script>
 </body>
