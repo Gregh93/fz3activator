@@ -66,7 +66,7 @@
       margin-bottom: 10px;
     }
 
-    /* ── FILE ROWS ── */
+    /* FILE ROWS */
     .file-row {
       display: flex;
       align-items: center;
@@ -93,6 +93,7 @@
       text-overflow: ellipsis;
     }
     .file-name.loaded { color: var(--green); border-color: #2e5c30; }
+    .file-name.loaded.cached { color: #81c784; border-color: #1e4020; }
     .file-name.error  { color: var(--red);   border-color: #5c2e2e; }
     .pick-btn {
       flex-shrink: 0;
@@ -108,7 +109,7 @@
     }
     .pick-btn:active { background: var(--accent); }
 
-    /* ── DRIVE STATUS ── */
+    /* DRIVE STATUS */
     #statusRow {
       display: flex;
       align-items: center;
@@ -123,21 +124,23 @@
     }
     #statusDot.ok   { background: var(--green); }
     #statusDot.err  { background: var(--red); }
-    #statusDot.warn { background: var(--orange); }
+    #statusDot.warn { background: var(--orange); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     #statusText { font-size: .9rem; flex: 1; }
-    #reconnectBtn {
-      font-size: .75rem;
-      padding: 5px 10px;
+    #connectBtn {
+      font-size: .78rem;
+      padding: 6px 12px;
       border-radius: 6px;
-      background: var(--orange);
-      color: #000;
+      background: #1a3a6a;
+      color: #90caf9;
       font-weight: 700;
-      border: none;
+      border: 1px solid #2a5a9a;
       cursor: pointer;
       display: none;
     }
+    #connectBtn:active { background: #254a80; }
 
-    /* ── WATCHFACE LIST ── */
+    /* WATCHFACE LIST */
     .list-toolbar {
       display: flex;
       justify-content: space-between;
@@ -192,12 +195,8 @@
       padding: 18px 0;
     }
 
-    /* ── DURATION PRESETS ── */
-    #presets {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    /* DURATION PRESETS */
+    #presets { display: flex; gap: 8px; align-items: center; }
     #presets label { font-size: .82rem; color: var(--muted); margin-right: 2px; }
     .preset-btn {
       flex: 1;
@@ -215,7 +214,7 @@
     .preset-btn.active { border-color: var(--sel); background: #1c3a5e; }
     .preset-btn:active { background: var(--accent); }
 
-    /* ── ACTION BUTTONS ── */
+    /* ACTION BUTTONS */
     #actions { display: flex; gap: 8px; }
     .action-btn {
       flex: 1;
@@ -237,7 +236,7 @@
     #lockBtn    { background: #7a1a1a; color: #ef9a9a; }
     #lockAllBtn { background: #5a1a1a; color: #ef9a9a; }
 
-    /* ── TIMER / PROGRESS ── */
+    /* TIMER */
     #timerCard { display: none; }
     #timerCard.visible { display: block; }
     .timer-row { display: flex; align-items: center; gap: 12px; }
@@ -270,7 +269,7 @@
       min-height: 1.2em;
     }
 
-    /* ── TOAST ── */
+    /* TOAST */
     #toast {
       position: fixed;
       bottom: 24px;
@@ -289,7 +288,6 @@
     }
     #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    /* hidden inputs */
     #credInput, #wfInput { display: none; }
   </style>
 </head>
@@ -302,16 +300,14 @@
 
 <main>
 
-  <!-- FILES -->
+  <!-- DATA FILES -->
   <div class="card">
     <div class="card-title">Data Files</div>
-
     <div class="file-row">
       <span class="file-label">credentials.json</span>
       <div class="file-name" id="credName">Not loaded</div>
       <button class="pick-btn" onclick="document.getElementById('credInput').click()">📂 Load</button>
     </div>
-
     <div class="file-row">
       <span class="file-label">watchfaces.txt</span>
       <div class="file-name" id="wfName">Not loaded</div>
@@ -319,7 +315,6 @@
     </div>
   </div>
 
-  <!-- hidden file inputs — accept= helps Android filter the picker -->
   <input type="file" id="credInput" accept=".json,application/json" />
   <input type="file" id="wfInput"   accept=".txt,text/plain" />
 
@@ -329,7 +324,7 @@
     <div id="statusRow">
       <div id="statusDot"></div>
       <span id="statusText">Load credentials.json to connect</span>
-      <button id="reconnectBtn" onclick="connectDrive()">🔄 Connect</button>
+      <button id="connectBtn" onclick="startAuthRedirect()">🔑 Sign in with Google</button>
     </div>
   </div>
 
@@ -385,9 +380,10 @@
 <div id="toast"></div>
 
 <script>
-/* ── STATE ── */
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
 let accessToken   = null;
-let tokenClient   = null;
 let credentials   = null;
 let watchfaces    = {};
 let watchfaceText = null;
@@ -399,9 +395,91 @@ let remainingMs   = 0;
 let totalMs       = 0;
 let timerRunning  = false;
 
-const SCOPES = 'https://www.googleapis.com/auth/drive';
+const SCOPES       = 'https://www.googleapis.com/auth/drive';
+const LS_CRED_KEY  = 'wfa_credentials';
+const LS_WF_KEY    = 'wfa_watchfaces';
+const LS_TOKEN_KEY = 'wfa_token_expiry'; // stores {token, expiry}
 
-/* ── FILE INPUTS ── */
+/* ════════════════════════════════════════
+   STARTUP — handle redirect token + load cache
+════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', function() {
+  // 1. Check if we're returning from a Google OAuth redirect
+  handleOAuthRedirect();
+
+  // 2. Restore cached files from localStorage
+  restoreFromCache();
+});
+
+function handleOAuthRedirect() {
+  // Google returns token in the URL hash: #access_token=...&expires_in=...
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('access_token')) return;
+
+  const params = {};
+  hash.slice(1).split('&').forEach(function(part) {
+    const kv = part.split('=');
+    params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+  });
+
+  if (params.access_token) {
+    accessToken = params.access_token;
+
+    // Cache token with expiry time
+    const expiry = Date.now() + (parseInt(params.expires_in || 3600) - 60) * 1000;
+    try { localStorage.setItem(LS_TOKEN_KEY, JSON.stringify({ token: accessToken, expiry: expiry })); } catch(e) {}
+
+    // Clean the token from the URL bar so it's not visible / accidentally shared
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+
+    setStatus('ok', 'Connected to Google Drive', false);
+    updateActionBtns();
+    toast('✅ Google Drive connected');
+  }
+
+  if (params.error) {
+    setStatus('err', 'Auth error: ' + params.error, true);
+  }
+}
+
+function restoreFromCache() {
+  // Restore cached token if not expired
+  try {
+    const raw = localStorage.getItem(LS_TOKEN_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj.token && obj.expiry > Date.now()) {
+        accessToken = obj.token;
+        setStatus('ok', 'Connected to Google Drive', false);
+        updateActionBtns();
+      }
+    }
+  } catch(e) {}
+
+  // Restore credentials.json
+  try {
+    const raw = localStorage.getItem(LS_CRED_KEY);
+    if (raw) {
+      credentials = JSON.parse(raw);
+      setFileStatus('cred', true, 'credentials.json', true);
+      if (!accessToken) setStatus('warn', 'Tap Sign in to connect', true);
+    }
+  } catch(e) {}
+
+  // Restore watchfaces.txt
+  try {
+    const raw = localStorage.getItem(LS_WF_KEY);
+    if (raw) {
+      watchfaceText = raw;
+      setFileStatus('wf', true, 'watchfaces.txt (cached)', true);
+      reloadList();
+    }
+  } catch(e) {}
+}
+
+/* ════════════════════════════════════════
+   FILE INPUTS
+════════════════════════════════════════ */
 document.getElementById('credInput').addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -411,17 +489,16 @@ document.getElementById('credInput').addEventListener('change', function(e) {
       const parsed = JSON.parse(ev.target.result);
       credentials = parsed.installed || parsed.web;
       if (!credentials) throw new Error('Unrecognized format');
-      setFileStatus('cred', true, file.name);
-      setStatus('warn', 'Credentials loaded — tap Connect', true);
-      initTokenClient();
-      toast('✅ credentials.json loaded');
+      // Cache it
+      try { localStorage.setItem(LS_CRED_KEY, JSON.stringify(credentials)); } catch(ex) {}
+      setFileStatus('cred', true, file.name, false);
+      if (!accessToken) setStatus('warn', 'Tap Sign in to connect', true);
+      toast('✅ credentials.json loaded & saved');
     } catch(err) {
-      setFileStatus('cred', false, 'Invalid JSON: ' + err.message);
-      setStatus('err', 'Bad credentials.json', false);
+      setFileStatus('cred', false, 'Invalid: ' + err.message, false);
     }
   };
   reader.readAsText(file);
-  // reset so same file can be re-picked
   e.target.value = '';
 });
 
@@ -431,21 +508,25 @@ document.getElementById('wfInput').addEventListener('change', function(e) {
   const reader = new FileReader();
   reader.onload = function(ev) {
     watchfaceText = ev.target.result;
-    setFileStatus('wf', true, file.name);
+    // Cache it
+    try { localStorage.setItem(LS_WF_KEY, watchfaceText); } catch(ex) {}
+    setFileStatus('wf', true, file.name, false);
     reloadList();
-    toast('✅ watchfaces.txt loaded (' + Object.keys(watchfaces).length + ' entries)');
+    toast('✅ watchfaces.txt loaded & saved (' + Object.keys(watchfaces).length + ' entries)');
   };
   reader.readAsText(file);
   e.target.value = '';
 });
 
-function setFileStatus(which, ok, label) {
+function setFileStatus(which, ok, label, cached) {
   const el = document.getElementById(which === 'cred' ? 'credName' : 'wfName');
   el.textContent = label;
-  el.className   = 'file-name ' + (ok ? 'loaded' : 'error');
+  el.className   = 'file-name' + (ok ? ' loaded' + (cached ? ' cached' : '') : ' error');
 }
 
-/* ── WATCHFACES.TXT ── */
+/* ════════════════════════════════════════
+   WATCHFACES.TXT
+════════════════════════════════════════ */
 function extractFileId(s) {
   if (s.includes('drive.google.com')) {
     const m = s.match(/(?:id=|[ /]d\/)([a-zA-Z0-9_-]+)/);
@@ -464,8 +545,8 @@ function parseWatchfaces(text) {
       if (parts.length >= 2) {
         result[parts[0].trim()] = {
           id:       extractFileId(parts[1].trim()),
-          lang:     parts[2]?.trim() || 'Unknown',
-          watch_id: parts[3]?.trim() || 'unknown'
+          lang:     (parts[2] || 'Unknown').trim(),
+          watch_id: (parts[3] || 'unknown').trim()
         };
       }
     } else if (line.includes(' - ')) {
@@ -488,7 +569,7 @@ function reloadList() {
 
 function renderList() {
   const ul   = document.getElementById('watchList');
-  const keys = Object.keys(watchfaces).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  const keys = Object.keys(watchfaces).sort(function(a,b){ return a.toLowerCase().localeCompare(b.toLowerCase()); });
   ul.innerHTML = '';
   if (!keys.length) {
     ul.innerHTML = '<li><div class="empty-msg">No entries found in watchfaces.txt</div></li>';
@@ -514,9 +595,9 @@ function toggleSelect(name, li) {
 
 function selectAll() {
   const keys   = Object.keys(watchfaces);
-  const allSel = keys.length > 0 && keys.every(k => selectedNames.has(k));
+  const allSel = keys.length > 0 && keys.every(function(k){ return selectedNames.has(k); });
   if (allSel) { selectedNames.clear(); }
-  else        { keys.forEach(k => selectedNames.add(k)); }
+  else        { keys.forEach(function(k){ selectedNames.add(k); }); }
   renderList();
   updateSelCount();
   updateActionBtns();
@@ -526,36 +607,35 @@ function updateSelCount() {
   document.getElementById('selCount').textContent = selectedNames.size + ' selected';
 }
 
-/* ── GOOGLE AUTH ── */
-function initTokenClient() {
-  if (!credentials) return;
-  const script = document.createElement('script');
-  script.src   = 'https://accounts.google.com/gsi/client';
-  script.onload = function() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: credentials.client_id,
-      scope:     SCOPES,
-      callback:  handleTokenResponse
-    });
-  };
-  document.head.appendChild(script);
+/* ════════════════════════════════════════
+   GOOGLE AUTH — redirect flow (works in WebView)
+════════════════════════════════════════ */
+function startAuthRedirect() {
+  if (!credentials) {
+    toast('Load credentials.json first');
+    return;
+  }
+
+  // Build the Google OAuth URL manually — no popup, just a full redirect
+  const redirectUri  = window.location.href.split('#')[0].split('?')[0]; // current page, clean
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth' +
+    '?client_id='     + encodeURIComponent(credentials.client_id) +
+    '&redirect_uri='  + encodeURIComponent(redirectUri) +
+    '&response_type=token' +
+    '&scope='         + encodeURIComponent(SCOPES) +
+    '&prompt=select_account';
+
+  // Save current page state to sessionStorage so we can restore after redirect
+  try {
+    if (watchfaceText) sessionStorage.setItem('wfa_wf_pending', '1');
+  } catch(e) {}
+
+  window.location.href = authUrl;
 }
 
-function connectDrive() {
-  if (!credentials) { toast('Load credentials.json first'); return; }
-  if (!tokenClient) { toast('Auth not ready yet, try again'); return; }
-  tokenClient.requestAccessToken();
-}
-
-function handleTokenResponse(resp) {
-  if (resp.error) { setStatus('err', 'Auth error: ' + resp.error, true); return; }
-  accessToken = resp.access_token;
-  setStatus('ok', 'Connected to Google Drive', false);
-  updateActionBtns();
-  toast('✅ Google Drive connected');
-}
-
-/* ── DRIVE API ── */
+/* ════════════════════════════════════════
+   DRIVE API
+════════════════════════════════════════ */
 async function makePublic(fileId) {
   const res = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '/permissions', {
     method:  'POST',
@@ -571,8 +651,8 @@ async function makePrivate(fileId) {
     { headers: { 'Authorization': 'Bearer ' + accessToken } }
   );
   if (!listRes.ok) return false;
-  const data = await listRes.json();
-  const perms = (data.permissions || []).filter(function(p) { return p.type === 'anyone'; });
+  const data  = await listRes.json();
+  const perms = (data.permissions || []).filter(function(p){ return p.type === 'anyone'; });
   for (const perm of perms) {
     await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '/permissions/' + perm.id, {
       method:  'DELETE',
@@ -582,7 +662,9 @@ async function makePrivate(fileId) {
   return true;
 }
 
-/* ── ACTIONS ── */
+/* ════════════════════════════════════════
+   ACTIONS
+════════════════════════════════════════ */
 async function doUnlock() {
   if (!accessToken)        { toast('Connect to Google Drive first'); return; }
   if (!selectedNames.size) { toast('Select at least one watchface'); return; }
@@ -598,7 +680,7 @@ async function doUnlock() {
     if (ok) { activeWFs.push({ name: name, id: d.id }); count++; }
   }
 
-  if (count === 0) { toast('❌ Failed to unlock any watchface'); setAllBtns(true); return; }
+  if (count === 0) { toast('❌ Failed to unlock'); setAllBtns(true); return; }
 
   const label = count === 1 ? activeWFs[0].name + ' is active' : count + ' Watchfaces active';
   setTimerStatus('✓ ' + label);
@@ -622,7 +704,7 @@ async function doLockAll() {
   for (const d of Object.values(watchfaces)) await makePrivate(d.id);
   activeWFs = [];
   setTimerStatus('🔐 All Locked');
-  setTimeout(function() { showTimerCard(false); }, 2000);
+  setTimeout(function(){ showTimerCard(false); }, 2000);
   resetActionBtns();
   toast('🔐 All watchfaces locked');
 }
@@ -633,15 +715,17 @@ async function lockActiveWFs() {
   const label = count === 1 ? activeWFs[0].name + ' deactivated' : count + ' Watchfaces deactivated';
   setTimerStatus('🔒 ' + label);
   activeWFs = [];
-  setTimeout(function() { showTimerCard(false); }, 2000);
+  setTimeout(function(){ showTimerCard(false); }, 2000);
   resetActionBtns();
   toast('🔒 ' + label);
 }
 
-/* ── TIMER ── */
+/* ════════════════════════════════════════
+   TIMER
+════════════════════════════════════════ */
 function setDuration(min) {
   durMinutes = min;
-  document.querySelectorAll('.preset-btn').forEach(function(b) {
+  document.querySelectorAll('.preset-btn').forEach(function(b){
     b.classList.toggle('active', parseInt(b.dataset.min) === min);
   });
   if (timerRunning) {
@@ -682,26 +766,28 @@ function updateTimerDisplay() {
   const m   = Math.floor(s / 60);
   const sec = s % 60;
   document.getElementById('timerDisplay').textContent =
-    String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+    String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
   const pct = totalMs > 0 ? ((totalMs - remainingMs) / totalMs * 100) : 0;
   document.getElementById('progressBar').style.width = pct + '%';
 }
 
-/* ── UI HELPERS ── */
+/* ════════════════════════════════════════
+   UI HELPERS
+════════════════════════════════════════ */
 function showTimerCard(show) {
   document.getElementById('timerCard').classList.toggle('visible', show);
   if (!show) {
     document.getElementById('timerDisplay').textContent = '--:--';
-    document.getElementById('progressBar').style.width = '0%';
-    document.getElementById('timerStatus').textContent  = '';
+    document.getElementById('progressBar').style.width  = '0%';
+    document.getElementById('timerStatus').textContent   = '';
   }
 }
-function setTimerStatus(msg) { document.getElementById('timerStatus').textContent = msg; }
+function setTimerStatus(msg){ document.getElementById('timerStatus').textContent = msg; }
 
 function setStatus(type, msg, showBtn) {
-  document.getElementById('statusDot').className  = type;
+  document.getElementById('statusDot').className    = type;
   document.getElementById('statusText').textContent = msg;
-  document.getElementById('reconnectBtn').style.display = showBtn ? 'inline-block' : 'none';
+  document.getElementById('connectBtn').style.display = showBtn ? 'inline-block' : 'none';
 }
 
 function updateActionBtns() {
@@ -720,7 +806,7 @@ function resetActionBtns() {
 }
 
 function setAllBtns(enabled) {
-  ['unlockBtn','lockBtn','lockAllBtn'].forEach(function(id) {
+  ['unlockBtn','lockBtn','lockAllBtn'].forEach(function(id){
     document.getElementById(id).disabled = !enabled;
   });
 }
@@ -735,7 +821,7 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function() { el.classList.remove('show'); }, 2800);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2800);
 }
 </script>
 </body>
