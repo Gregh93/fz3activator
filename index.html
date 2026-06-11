@@ -28,11 +28,16 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+	html {
+      height: 100%;
+    }
+
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Segoe UI', system-ui, sans-serif;
-      height: 100dvh; /* Lock to viewport */
+      height: 100%; /* Fallback */
+      height: 100svh; /* Locks tightly to the minimum guaranteed visible screen area */
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -160,9 +165,10 @@
     .empty-msg { text-align: center; color: var(--muted); font-size: .85rem; padding: 20px; }
 
     /* BOTTOM CONTROLS (Sticky) */
-    footer {
+	footer {
       background: var(--surface);
-      padding: 12px 14px 20px; /* Extra bottom padding for safe area */
+      /* Combines a safe default padding with the device's actual safe area inset */
+      padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 8px)); 
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
