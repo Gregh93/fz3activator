@@ -301,6 +301,7 @@
     </select>
     <div class="toolbar-btns">
       <button class="icon-btn" onclick="selectAll()">✓ All</button>
+      <button class="icon-btn" onclick="clearSelection()">✗ Clear</button>
     </div>
   </div>
 
@@ -574,6 +575,13 @@ function selectAll() {
   renderList(); updateSelCount(); updateActionBtns();
 }
 
+function clearSelection() {
+  selectedNames.clear();
+  renderList(); 
+  updateSelCount(); 
+  updateActionBtns();
+}
+
 function updateSelCount() { document.getElementById('selCount').textContent = selectedNames.size + ' selected'; }
 
 function setDuration(min) {
@@ -628,6 +636,7 @@ function startCountdown() {
         document.getElementById('timerCard').classList.remove('visible');
         toast('Timer expired. Session locked.');
         activeWFs = [];
+        clearSelection();
         isProcessing = false;
         updateActionBtns();
       });
