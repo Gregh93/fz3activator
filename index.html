@@ -166,8 +166,8 @@
 
     /* BOTTOM CONTROLS (Sticky) */
 	footer {
+	  position: relative;
       background: var(--surface);
-      /* Combines a safe default padding with the device's actual safe area inset */
       padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 8px)); 
       flex-shrink: 0;
       display: flex;
@@ -248,10 +248,11 @@
 
 	/* TOAST */
     #toast {
-      position: fixed;
-      top: calc(520px + env(safe-area-inset-top, 0px)); /* Adjust the 40px to your liking */
+      position: absolute;
+	  bottom: 100%;
       left: 50%;
-      transform: translateX(-50%) translateY(-20px) scale(0.95);
+	  margin-bottom: 18px;
+      transform: translateX(-50%) translateY(15px) scale(0.95);
       background: var(--surface2); 
       border: 1px solid var(--border);
       border-left: 6px solid var(--sel); /* Strong blue accent line */
@@ -327,6 +328,8 @@
 </main>
 
 <footer>
+  <div id="toast"></div>
+  
   <div id="presets">
     <button class="preset-btn" data-min="1"  onclick="setDuration(1)">1m</button>
     <button class="preset-btn" data-min="3"  onclick="setDuration(3)">3m</button>
@@ -347,8 +350,6 @@
     </div>
   </div>
 </footer>
-
-<div id="toast"></div>
 
 <script>
 // --- Embedded Watch Mapping ---
