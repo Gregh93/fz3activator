@@ -249,7 +249,7 @@
 	/* TOAST */
     #toast {
       position: fixed;
-      top: calc(200px + env(safe-area-inset-top, 0px)); /* Adjust the 40px to your liking */
+      top: calc(520px + env(safe-area-inset-top, 0px)); /* Adjust the 40px to your liking */
       left: 50%;
       transform: translateX(-50%) translateY(-20px) scale(0.95);
       background: var(--surface2); 
@@ -687,6 +687,7 @@ async function doLockCurrent() {
   toast('Locked ' + activeWFs.length + ' active files');
   activeWFs = []; 
   
+  clearSelection();
   isProcessing = false;
   updateActionBtns();
 }
@@ -726,6 +727,7 @@ async function doLockAll() {
   toast('🔐 All Locked (' + lockedCount + ' files modified)');
   activeWFs = [];
   
+  clearSelection();
   isProcessing = false;
   updateActionBtns();
 }
