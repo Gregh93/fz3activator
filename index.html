@@ -697,23 +697,29 @@ async function doUnlock() {
 }
 
 function startCountdown() {
-  remainingMs = durMinutes * 60 * 1000; totalMs = remainingMs;
+  // 1. Calculate total duration and the exact timestamp it should end
+  totalMs = durMinutes * 60 * 1000;
+  const endTime = Date.now() + totalMs; 
+  
   timerRunning = true;
   
+  // 2. Clear any existing timer to prevent duplicates
   if (timerInterval) clearInterval(timerInterval);
+  
+  // 3. Start the interval loop
   timerInterval = setInterval(() => {
-    remainingMs -= 1000;
-    const m = Math.floor(remainingMs/60000), s = Math.floor((remainingMs%60000)/1000);
-    document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    document.getElementById('progressBar').style.width = (100 - (remainingMs/totalMs)*100) + '%';
+    // Check the real system time delta instead of subtracting a fixed 1000ms
+    remainingMs = endTime - Date.now(); 
     
+    // 4. Handle expiration when time hits 0
     if (remainingMs <= 0) { 
+      remainingMs = 0; // Lock at 0 so the UI doesn't show negative numbers
       clearInterval(timerInterval); 
       timerRunning = false;
       isProcessing = true;
       updateActionBtns();
 	  
-	  // ADD THIS: Trigger our sensory alerts
+      // Trigger our sensory alerts
       playCompletionAlert();
 	  
       lockActiveWFs().then(() => {
@@ -725,7 +731,18 @@ function startCountdown() {
         updateActionBtns();
       });
     }
-  }, 1000);
+    
+    // 5. Update UI (Timer Display & Progress Bar)
+    const m = Math.floor(remainingMs / 60000);
+    const s = Math.floor((remainingMs % 60000) / 1000);
+    
+    document.getElementById('timerDisplay').textContent = 
+      `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      
+    document.getElementById('progressBar').style.width = 
+      (100 - (remainingMs / totalMs) * 100) + '%';
+      
+  }, 1000); 
 }
 
 async function lockActiveWFs() {
