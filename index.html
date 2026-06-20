@@ -557,6 +557,16 @@ async function processFiles(files) {
     document.getElementById('folderBtn').classList.add('ok');
     reloadList();
     toast('✅ Data Loaded/Refreshed');
+    
+    // --- NEW: Auto-connect to Drive ---
+    if (!accessToken) {
+      // A tiny delay ensures the UI updates and the toast is visible 
+      // before the browser shifts focus to the popup window.
+      setTimeout(() => {
+        startAuthRedirect();
+      }, 500);
+    }
+    // ----------------------------------
   } else if (foundWFs) {
     reloadList();
     toast('⚠️ Missing credentials.json');
