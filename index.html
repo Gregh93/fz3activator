@@ -197,7 +197,18 @@
     #watchList li .wf-meta { font-size: .8rem; color: var(--muted); background: var(--bg); padding: 2px 8px; border-radius: 12px; }
     #watchList li.selected .wf-meta { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
     
-    .empty-msg { text-align: center; color: var(--muted); font-size: .9rem; padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .empty-msg { 
+      width: 100%; /* Forces the div to span the full width of the li */
+      cursor: default; /* Overrides the clickable pointer cursor from the parent li */
+      text-align: center; 
+      color: var(--muted); 
+      font-size: .9rem; 
+      padding: 30px 20px; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 10px; 
+    }
     .empty-msg .material-symbols-rounded { font-size: 32px; opacity: 0.5; }
 
     /* FOOTER / CONTROLS */
@@ -314,9 +325,26 @@
       gap: 8px;
     }
     
-    #toast.success { border: 1px solid var(--green); background: rgba(16, 185, 129, 0.1); color: var(--green); }
-    #toast.error   { border: 1px solid var(--red); background: rgba(239, 68, 68, 0.1); color: var(--red); }
-    #toast.warn    { border: 1px solid var(--warning); background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    #toast.success { 
+      border: 1px solid var(--green); 
+      background: var(--surface-solid); 
+      color: var(--text); 
+    }
+    #toast.success .material-symbols-rounded { color: var(--green); }
+
+    #toast.error { 
+      border: 1px solid var(--red); 
+      background: var(--surface-solid); 
+      color: var(--text); 
+    }
+    #toast.error .material-symbols-rounded { color: var(--red); }
+
+    #toast.warn { 
+      border: 1px solid var(--orange); /* Fixed from --warning */
+      background: var(--surface-solid); 
+      color: var(--text); 
+    }
+    #toast.warn .material-symbols-rounded { color: var(--orange); }
     
     #toast.show { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
     #folderInput { display: none; }
@@ -325,7 +353,7 @@
 <body>
 
 <header>
-  <h1><span class="material-symbols-rounded">watch</span> FZ3 Activator</h1>
+  <h1><span class="material-symbols-rounded">watch</span> Watchfaces Activator</h1>
   <span id="selCount">0 selected</span>
 </header>
 
