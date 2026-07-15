@@ -38,16 +38,26 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-    html { height: 100%; }
+    html { 
+      height: 100%; 
+      overscroll-behavior: none; /* Stops the pull-to-refresh bounce */
+    }
 
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Inter', system-ui, sans-serif;
-      height: 100svh;
+      
+      /* Lock the body to prevent address bar resize jumps */
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      overscroll-behavior: none;
     }
 
     /* ICONS SETUP */
@@ -160,8 +170,33 @@
       padding: 8px 12px;
       cursor: pointer;
       transition: background 0.2s;
+
+      /* Flexbox alignment for the new icon */
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .icon-btn:active { background: var(--surface2); }
+
+    .icon-btn .material-symbols-rounded {
+      font-size: 18px;
+    }
+
+    .icon-btn.clear-btn {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5; /* Softer, low-contrast red for dark mode text */
+    }
+
+    /* Make the icon match the text theme */
+    .icon-btn.clear-btn .material-symbols-rounded {
+      color: #ef4444;
+    }
+
+    /* Slightly deeper red tint when clicked */
+    .icon-btn.clear-btn:active {
+      background: rgba(239, 68, 68, 0.18);
+    }
 
     .list-container {
       flex: 1;
@@ -392,8 +427,9 @@
       <option value="all">All Watches</option>
     </select>
     <div class="toolbar-btns">
-      <button class="icon-btn" onclick="selectAll()">Select All</button>
-      <button class="icon-btn" onclick="clearSelection()">Clear</button>
+      <button class="icon-btn clear-btn" onclick="clearSelection()">
+        <span class="material-symbols-rounded">close</span> Clear selection
+      </button>
     </div>
   </div>
 
@@ -685,17 +721,27 @@ function renderList() {
   const ul = document.getElementById('watchList');
   const filterVal = document.getElementById('watchFilter').value;
   ul.innerHTML = '';
+  
   Object.keys(watchfaces).sort().forEach(name => {
     if (filterVal === 'all' || watchfaces[name].watch_id === filterVal) {
       const li = document.createElement('li');
       li.className = selectedNames.has(name) ? 'selected' : '';
-      const niceName = getWatchName(watchfaces[name].watch_id);
       
-      li.innerHTML = `<span class="wf-name">${name}</span><span class="wf-meta">${niceName}</span>`;
+      // Only show the watch model pill if the "All Watches" filter is active
+      if (filterVal === 'all') {
+        const niceName = getWatchName(watchfaces[name].watch_id);
+        li.innerHTML = `<span class="wf-name">${name}</span><span class="wf-meta">${niceName}</span>`;
+      } else {
+        li.innerHTML = `<span class="wf-name">${name}</span>`;
+      }
+      
       li.onclick = () => {
         selectedNames.has(name) ? selectedNames.delete(name) : selectedNames.add(name);
-        renderList(); updateSelCount(); updateActionBtns();
+        renderList(); 
+        updateSelCount(); 
+        updateActionBtns();
       };
+      
       ul.appendChild(li);
     }
   });
