@@ -198,6 +198,20 @@
       background: rgba(239, 68, 68, 0.18);
     }
 
+    /* Custom disabled state for the clear button so it doesn't vanish */
+    .icon-btn.clear-btn:disabled {
+      background: var(--surface2);
+      border-color: var(--border);
+      color: var(--muted);
+      opacity: 0.6; /* High enough to be noticeable, low enough to look inactive */
+      filter: none; /* Removes the grayscale effect so the grey stays crisp */
+    }
+
+    /* Match the icon color to the muted text when disabled */
+    .icon-btn.clear-btn:disabled .material-symbols-rounded {
+      color: var(--muted);
+    }
+
     .list-container {
       flex: 1;
       background: var(--surface-solid);
@@ -277,6 +291,13 @@
     .preset-btn.active { border-color: var(--primary); background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
     .preset-btn:not(.active):active { background: #3f3f46; transform: scale(0.95); }
     .preset-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+    .icon-btn:disabled { 
+      opacity: 0.4; 
+      cursor: not-allowed; 
+      filter: grayscale(100%); 
+      pointer-events: none; 
+    }
 
     /* ACTION BUTTONS */
     #actions { display: flex; gap: 10px; }
@@ -427,7 +448,7 @@
       <option value="all">All Watches</option>
     </select>
     <div class="toolbar-btns">
-      <button class="icon-btn clear-btn" onclick="clearSelection()">
+      <button id="clearBtn" class="icon-btn clear-btn" onclick="clearSelection()" disabled>
         <span class="material-symbols-rounded">close</span> Clear selection
       </button>
     </div>
@@ -761,7 +782,9 @@ function clearSelection() {
   renderList(); updateSelCount(); updateActionBtns();
 }
 
-function updateSelCount() { document.getElementById('selCount').textContent = selectedNames.size + ' selected'; }
+function updateSelCount() { 
+  document.getElementById('selCount').textContent = selectedNames.size + ' selected'; 
+}
 
 function setDuration(min) {
   durMinutes = min;
@@ -903,6 +926,10 @@ async function doLockAll() {
 
 function updateActionBtns() { 
   const hasToken = !!accessToken;
+  
+  // Disable the clear button if nothing is selected
+  document.getElementById('clearBtn').disabled = selectedNames.size === 0;
+
   if (isProcessing) {
     document.getElementById('unlockBtn').disabled = true;
     document.getElementById('lockCurrentBtn').disabled = true;
