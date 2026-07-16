@@ -713,7 +713,15 @@ function parseWatchfaces(text) {
     if (!line || line.startsWith('#')) return;
     const parts = line.split('|').map(p => p.trim());
     if (parts.length >= 2) {
-      result[parts[0]] = { id: parts[1].replace(/(?:id=|[ /]d\/)([a-zA-Z0-9_-]+)/, '$1'), watch_id: parts[3] || 'unknown' };
+      const watchId = parts[3] || 'unknown';
+      // Create a unique key: e.g., "Concentric Core (activemax)"
+      const key = `${parts[0]} (${watchId})`; 
+      
+      result[key] = { 
+        displayName: parts[0], // Store the clean name for the UI
+        id: parts[1].replace(/(?:id=|[ /]d\/)([a-zA-Z0-9_-]+)/, '$1'), 
+        watch_id: watchId 
+      };
     }
   });
   return result;
@@ -744,21 +752,22 @@ function renderList() {
   const filterVal = document.getElementById('watchFilter').value;
   ul.innerHTML = '';
   
-  Object.keys(watchfaces).sort().forEach(name => {
-    if (filterVal === 'all' || watchfaces[name].watch_id === filterVal) {
+  Object.keys(watchfaces).sort().forEach(key => {
+    const wf = watchfaces[key];
+    if (filterVal === 'all' || wf.watch_id === filterVal) {
       const li = document.createElement('li');
-      li.className = selectedNames.has(name) ? 'selected' : '';
+      li.className = selectedNames.has(key) ? 'selected' : '';
       
-      // Only show the watch model pill if the "All Watches" filter is active
       if (filterVal === 'all') {
-        const niceName = getWatchName(watchfaces[name].watch_id);
-        li.innerHTML = `<span class="wf-name">${name}</span><span class="wf-meta">${niceName}</span>`;
+        const niceName = getWatchName(wf.watch_id);
+        // Use wf.displayName instead of the key
+        li.innerHTML = `<span class="wf-name">${wf.displayName}</span><span class="wf-meta">${niceName}</span>`;
       } else {
-        li.innerHTML = `<span class="wf-name">${name}</span>`;
+        li.innerHTML = `<span class="wf-name">${wf.displayName}</span>`;
       }
       
       li.onclick = () => {
-        selectedNames.has(name) ? selectedNames.delete(name) : selectedNames.add(name);
+        selectedNames.has(key) ? selectedNames.delete(key) : selectedNames.add(key);
         renderList(); 
         updateSelCount(); 
         updateActionBtns();
@@ -771,9 +780,9 @@ function renderList() {
 
 function selectAll() {
   const filterVal = document.getElementById('watchFilter').value;
-  const targetNames = Object.keys(watchfaces).filter(name => filterVal === 'all' || watchfaces[name].watch_id === filterVal);
-  const allSelected = targetNames.every(name => selectedNames.has(name));
-  targetNames.forEach(name => allSelected ? selectedNames.delete(name) : selectedNames.add(name));
+  const targetKeys = Object.keys(watchfaces).filter(key => filterVal === 'all' || watchfaces[key].watch_id === filterVal);
+  const allSelected = targetKeys.every(key => selectedNames.has(key));
+  targetKeys.forEach(key => allSelected ? selectedNames.delete(key) : selectedNames.add(key));
   
   renderList(); updateSelCount(); updateActionBtns();
 }
@@ -801,15 +810,15 @@ async function doUnlock() {
   isProcessing = true;
   updateActionBtns();
   activeWFs = [];
-  for (const name of selectedNames) {
-    try {
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[name].id}/permissions`, {
-        method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
-        body: JSON.stringify({type: 'anyone', role: 'reader'})
-      });
-      if (res.ok) activeWFs.push({name, id: watchfaces[name].id});
-    } catch(e) {}
-  }
+  for (const key of selectedNames) {
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[key].id}/permissions`, {
+      method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
+      body: JSON.stringify({type: 'anyone', role: 'reader'})
+    });
+    if (res.ok) activeWFs.push({name: watchfaces[key].displayName, id: watchfaces[key].id});
+  } catch(e) {}
+}
 
   isProcessing = false;
   if (activeWFs.length > 0) {
