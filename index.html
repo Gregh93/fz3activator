@@ -911,7 +911,6 @@ async function doLockAll() {
   toast('Locking everything...');
   
   const allWfs = Object.values(watchfaces);
-  let lockedCount = 0;
   
   for (const wf of allWfs) {
     try {
@@ -921,13 +920,12 @@ async function doLockAll() {
         const p = list.permissions?.find(p => p.type === 'anyone');
         if (p) {
           await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions/${p.id}`, {method: 'DELETE', headers: {'Authorization': 'Bearer ' + accessToken}});
-          lockedCount++;
         }
       }
     } catch(e) {}
   }
   
-  toast('All Locked (' + lockedCount + ' files)');
+  toast('All locked');
   activeWFs = [];
   clearSelection();
   isProcessing = false;
