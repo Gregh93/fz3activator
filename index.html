@@ -953,17 +953,23 @@ function updateActionBtns() {
 function toast(msg) { 
   const t = document.getElementById('toast'); 
   let icon = 'info';
+  const lower = msg.toLowerCase();
   
   t.className = ''; 
-  if (msg.includes('Loaded') || msg.includes('Unlocked') || msg.includes('Connected')) {
+  if (lower.includes('loaded') || lower.includes('unlocked') || lower.includes('connected')) {
     t.classList.add('success');
     icon = 'check_circle';
-  } else if (msg.includes('Failed') || msg.includes('not found')) {
+  } else if (lower.includes('failed') || lower.includes('not found')) {
     t.classList.add('error');
     icon = 'error';
-  } else if (msg.includes('Missing') || msg.includes('Locked') || msg.includes('Locking')) {
+  } else if (lower.includes('all locked') || lower.includes('locking everything')) {
+    // Red accent to match the Lock All button
+    t.classList.add('error'); 
+    icon = 'lock_person';
+  } else if (lower.includes('missing') || lower.includes('locked') || lower.includes('locking')) {
+    // Orange accent for single/current lock actions & warnings
     t.classList.add('warn');
-    icon = msg.includes('Lock') ? 'lock' : 'warning';
+    icon = lower.includes('lock') ? 'lock' : 'warning';
   }
   
   t.innerHTML = `<span class="material-symbols-rounded">${icon}</span> ${msg}`;
