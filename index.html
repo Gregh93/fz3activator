@@ -220,6 +220,7 @@
       overflow-y: auto;
       overscroll-behavior: contain;
       box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+      position: relative; /* <--- ADD THIS LINE */
     }
     
     #watchList { list-style: none; display: flex; flex-direction: column; }
@@ -341,7 +342,17 @@
     }
 
     /* TIMER */
-    #timerCard { display: none; margin-top: 4px; background: var(--surface2); padding: 12px 16px; border-radius: var(--radius); border: 1px solid var(--border); }
+    #timerCard { 
+      display: none; 
+      margin-top: 4px; 
+      background: var(--surface2); 
+      padding: 12px 16px; 
+      border-radius: var(--radius); 
+      border: 1px solid var(--border); 
+      cursor: pointer; /* New */
+      transition: transform 0.15s ease; /* New */
+    }
+    #timerCard:active { transform: scale(0.98); } /* New */
     #timerCard.visible { display: block; animation: slideUp 0.3s ease; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     
@@ -370,6 +381,60 @@
       min-width: 65px;
       text-align: right;
       letter-spacing: 1px;
+    }
+
+    /* --- REPLACED LINKS MODAL CSS --- */
+    .modal {
+      display: none;
+      position: absolute; /* Anchors to the list-container */
+      z-index: 20;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--surface-solid); /* Matches the list background */
+      border-radius: var(--radius); 
+      overflow-y: auto; /* Allows scrolling if you have many links */
+    }
+
+    .modal-content {
+      background-color: transparent;
+      margin: 0;
+      padding: 16px;
+      border: none;
+      width: 100%;
+      max-width: none;
+      box-shadow: none;
+      animation: fadeScale 0.2s ease; /* Snappy new animation */
+    }
+
+    @keyframes fadeScale { 
+      from { opacity: 0; transform: scale(0.98); } 
+      to { opacity: 1; transform: scale(1); } 
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background-color: var(--surface2);
+      color: var(--text);
+      padding: 12px 15px;
+      margin-top: 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .link-item:hover, .link-item:active { 
+      background-color: #3f3f46; 
+      transform: translateY(-1px); 
+    }
+    .link-item .material-symbols-rounded { 
+      color: var(--primary); 
+      font-size: 20px; 
     }
 
     /* TOAST */
@@ -425,7 +490,7 @@
 <body>
 
 <header>
-  <h1><span class="material-symbols-rounded">watch</span> Watchfaces Activator</h1>
+  <h1><span class="material-symbols-rounded">watch</span> Premium Watchfaces</h1>
   <span id="selCount">0 selected</span>
 </header>
 
@@ -464,6 +529,24 @@
         </div>
       </li>
     </ul>
+
+  <!-- Links Modal -->
+    <div id="linksModal" class="modal">
+      <div class="modal-content">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-rounded" style="color: var(--primary);">link</span> Active Posts
+          </h3>
+          <!-- Reusing the Clear Selection button styles -->
+          <button id="closeModalBtn" class="icon-btn clear-btn">
+            <span class="material-symbols-rounded">close</span> Close
+          </button>
+        </div>
+
+        <div id="linksContainer"></div>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -496,7 +579,6 @@
     </div>
   </div>
 </footer>
-
 <script>
 // --- SCREEN WAKE LOCK ---
 let wakeLock = null;
@@ -573,6 +655,7 @@ let timerRunning  = false;
 let hasCreds      = false;
 let hasWfs        = false;
 let isProcessing  = false;
+let isLinksModalOpen = false;
 
 const SCOPES       = 'https://www.googleapis.com/auth/drive';
 const LS_CRED_KEY  = 'wfa_credentials';
@@ -713,18 +796,49 @@ function parseWatchfaces(text) {
     if (!line || line.startsWith('#')) return;
     const parts = line.split('|').map(p => p.trim());
     if (parts.length >= 2) {
-      const watchId = parts[3] || 'unknown';
-      // Create a unique key: e.g., "Concentric Core (activemax)"
+      const postUrl = parts.length > 2 ? parts[2] : '';
+      const watchId = parts.length > 3 ? parts[3] : 'unknown';
       const key = `${parts[0]} (${watchId})`; 
       
       result[key] = { 
-        displayName: parts[0], // Store the clean name for the UI
+        displayName: parts[0], 
         id: parts[1].replace(/(?:id=|[ /]d\/)([a-zA-Z0-9_-]+)/, '$1'), 
+        postUrl: postUrl,
         watch_id: watchId 
       };
     }
   });
   return result;
+}
+
+function toggleLinksModal(show) {
+  isLinksModalOpen = show;
+  const modal = document.getElementById('linksModal');
+  const list = document.getElementById('watchList');
+  const timerCard = document.getElementById('timerCard');
+  
+  if (show) {
+    modal.style.display = 'block';
+    list.style.display = 'none'; // Fixes the blue corner bug
+    timerCard.style.pointerEvents = 'none'; // Makes timer unclickable and removes hover
+    
+    // Disable setup bar & filter
+    document.getElementById('folderBtn').disabled = true;
+    document.getElementById('connectBtn').disabled = true;
+    document.getElementById('watchFilter').disabled = true;
+  } else {
+    modal.style.display = 'none';
+    list.style.display = 'flex'; // Restores the list
+    timerCard.style.pointerEvents = 'auto'; // Makes timer clickable again
+    
+    // Re-enable setup bar & filter
+    document.getElementById('folderBtn').disabled = false;
+    document.getElementById('connectBtn').disabled = false;
+    document.getElementById('watchFilter').disabled = false;
+  }
+  
+  // Refresh bottom action buttons based on the new state
+  updateActionBtns(); 
 }
 
 function reloadList() {
@@ -810,15 +924,24 @@ async function doUnlock() {
   isProcessing = true;
   updateActionBtns();
   activeWFs = [];
+  
   for (const key of selectedNames) {
-  try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[key].id}/permissions`, {
-      method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
-      body: JSON.stringify({type: 'anyone', role: 'reader'})
-    });
-    if (res.ok) activeWFs.push({name: watchfaces[key].displayName, id: watchfaces[key].id});
-  } catch(e) {}
-}
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[key].id}/permissions`, {
+        method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
+        body: JSON.stringify({type: 'anyone', role: 'reader'})
+      });
+      if (res.ok) {
+        // Push the extra data we need for the modal
+        activeWFs.push({
+          name: watchfaces[key].displayName, 
+          id: watchfaces[key].id,
+          url: watchfaces[key].postUrl,
+          model: getWatchName(watchfaces[key].watch_id)
+        });
+      }
+    } catch(e) {}
+  }
 
   isProcessing = false;
   if (activeWFs.length > 0) {
@@ -848,6 +971,8 @@ function startCountdown() {
       isProcessing = true;
       updateActionBtns();
       playCompletionAlert();
+
+      if (isLinksModalOpen) toggleLinksModal(false);
 	  
       lockActiveWFs().then(() => {
         document.getElementById('timerCard').classList.remove('visible');
@@ -888,6 +1013,8 @@ async function doLockCurrent() {
   if (timerInterval) clearInterval(timerInterval);
   timerRunning = false;
   
+  if (isLinksModalOpen) toggleLinksModal(false); // <--- ADD THIS LINE
+  
   await lockActiveWFs();
   
   document.getElementById('timerCard').classList.remove('visible');
@@ -907,6 +1034,9 @@ async function doLockAll() {
   updateActionBtns();
   if (timerInterval) clearInterval(timerInterval);
   timerRunning = false;
+
+  if (isLinksModalOpen) toggleLinksModal(false); // <--- ADD THIS LINE
+
   document.getElementById('timerCard').classList.remove('visible');
   toast('Locking everything...');
   
@@ -935,8 +1065,8 @@ async function doLockAll() {
 function updateActionBtns() { 
   const hasToken = !!accessToken;
   
-  // Disable the clear button if nothing is selected
-  document.getElementById('clearBtn').disabled = selectedNames.size === 0;
+  // Disable the clear button if nothing is selected OR the modal is open
+  document.getElementById('clearBtn').disabled = selectedNames.size === 0 || isLinksModalOpen;
 
   if (isProcessing) {
     document.getElementById('unlockBtn').disabled = true;
@@ -944,8 +1074,14 @@ function updateActionBtns() {
     document.getElementById('lockAllBtn').disabled = true;
     return;
   }
+  
+  // Timer presets stay disabled if timer is running or processing
   document.querySelectorAll('.preset-btn').forEach(b => b.disabled = timerRunning || isProcessing);
-  document.getElementById('unlockBtn').disabled = !hasToken || selectedNames.size === 0 || timerRunning; 
+  
+  // Unlock is disabled if modal is open to prevent accidental double-unlocks
+  document.getElementById('unlockBtn').disabled = !hasToken || selectedNames.size === 0 || timerRunning || isLinksModalOpen; 
+  
+  // CHANGED: Lock buttons are now independent of the links modal state
   document.getElementById('lockCurrentBtn').disabled = !hasToken || activeWFs.length === 0;
   document.getElementById('lockAllBtn').disabled = !hasToken;
 }
@@ -984,6 +1120,41 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.error('Service Worker registration failed', err));
   });
 }
+
+// --- MODAL LOGIC ---
+const linksModal = document.getElementById('linksModal');
+const linksContainer = document.getElementById('linksContainer');
+
+// Open modal when timer card is clicked
+document.getElementById('timerCard').addEventListener('click', () => {
+  if (activeWFs.length === 0 || isLinksModalOpen) return;
+  
+  linksContainer.innerHTML = '';
+  let linksAdded = 0;
+  
+  activeWFs.forEach(wf => {
+    if (!wf.url || wf.url.trim() === '' || wf.url === '-') return; 
+    
+    const a = document.createElement('a');
+    a.className = 'link-item';
+    a.href = wf.url;
+    a.target = '_blank';
+    a.innerHTML = `<span class="material-symbols-rounded">open_in_new</span> ${wf.name} (${wf.model})`;
+    linksContainer.appendChild(a);
+    linksAdded++;
+  });
+  
+  if (linksAdded === 0) {
+    linksContainer.innerHTML = '<div style="text-align:center; color: var(--muted); padding: 20px 0;">No links available for current active watchfaces.</div>';
+  }
+  
+  toggleLinksModal(true);
+});
+
+// Close modal via 'X' button
+document.getElementById('closeModalBtn').addEventListener('click', () => {
+  toggleLinksModal(false);
+});
 </script>
 </body>
 </html>
