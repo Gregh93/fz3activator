@@ -815,12 +815,10 @@ function toggleLinksModal(show) {
   isLinksModalOpen = show;
   const modal = document.getElementById('linksModal');
   const list = document.getElementById('watchList');
-  const timerCard = document.getElementById('timerCard');
   
   if (show) {
     modal.style.display = 'block';
     list.style.display = 'none'; // Fixes the blue corner bug
-    timerCard.style.pointerEvents = 'none'; // Makes timer unclickable and removes hover
     
     // Disable setup bar & filter
     document.getElementById('folderBtn').disabled = true;
@@ -829,7 +827,6 @@ function toggleLinksModal(show) {
   } else {
     modal.style.display = 'none';
     list.style.display = 'flex'; // Restores the list
-    timerCard.style.pointerEvents = 'auto'; // Makes timer clickable again
     
     // Re-enable setup bar & filter
     document.getElementById('folderBtn').disabled = false;
@@ -1125,9 +1122,15 @@ if ('serviceWorker' in navigator) {
 const linksModal = document.getElementById('linksModal');
 const linksContainer = document.getElementById('linksContainer');
 
-// Open modal when timer card is clicked
+// Toggle modal when timer card is clicked
 document.getElementById('timerCard').addEventListener('click', () => {
-  if (activeWFs.length === 0 || isLinksModalOpen) return;
+  if (activeWFs.length === 0) return;
+  
+  // NEW: If the modal is already open, close it and stop here.
+  if (isLinksModalOpen) {
+    toggleLinksModal(false);
+    return;
+  }
   
   linksContainer.innerHTML = '';
   let linksAdded = 0;
