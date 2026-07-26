@@ -796,8 +796,8 @@ function parseWatchfaces(text) {
     if (!line || line.startsWith('#')) return;
     const parts = line.split('|').map(p => p.trim());
     if (parts.length >= 2) {
-      const postUrl = parts.length > 2 ? parts[2] : '';
       const watchId = parts.length > 3 ? parts[3] : 'unknown';
+      const postUrl = parts.length > 4 ? parts[4] : '';
       const key = `${parts[0]} (${watchId})`; 
       
       result[key] = { 
