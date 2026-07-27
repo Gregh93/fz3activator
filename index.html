@@ -400,6 +400,66 @@
       font-size: 20px; 
     }
 
+    /* --- CUSTOM CONFIRM MODAL STYLES --- */
+    #confirmModal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #confirmModal.show {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .confirm-dialog {
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      animation: fadeScale 0.2s ease;
+    }
+    .confirm-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .confirm-cancel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      flex: 1;
+    }
+    .btn-orange { 
+      background: linear-gradient(135deg, #f59e0b, #d97706); 
+      color: #fff; 
+      border: none; 
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); 
+      flex: 1;
+    }
+    .btn-red { 
+      background: linear-gradient(135deg, #ef4444, #dc2626); 
+      color: #fff; 
+      border: none; 
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); 
+      flex: 1;
+    }
+
     #toast {
       position: absolute;
       bottom: 100%;
@@ -539,6 +599,22 @@
     </div>
   </div>
 </footer>
+
+<!-- Custom Confirm Modal -->
+<div id="confirmModal">
+  <div class="confirm-dialog">
+    <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+      <span id="confirmIcon" class="material-symbols-rounded">warning</span>
+      <span id="confirmTitleText">Confirm</span>
+    </h3>
+    <p id="confirmMessage" style="color: var(--text); font-size: 0.95rem; margin: 0; line-height: 1.4;"></p>
+    <div class="confirm-btns">
+      <button id="confirmCancelBtn" class="action-btn confirm-cancel">Cancel</button>
+      <button id="confirmOkBtn" class="action-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // --- SCREEN WAKE LOCK ---
 let wakeLock = null;
@@ -615,10 +691,41 @@ let isLinksModalOpen = false;
 
 const SCOPES = 'https://www.googleapis.com/auth/drive';
 
+// --- CUSTOM CONFIRM MODAL LOGIC ---
+let confirmActionCallback = null;
+
+function showConfirm(title, message, icon, confirmText, btnClass, callback) {
+  document.getElementById('confirmTitleText').textContent = title;
+  
+  const iconEl = document.getElementById('confirmIcon');
+  iconEl.textContent = icon;
+  iconEl.style.color = btnClass === 'btn-red' ? 'var(--red)' : 'var(--orange)';
+  
+  document.getElementById('confirmMessage').innerHTML = message;
+  
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.innerHTML = `<span class="material-symbols-rounded">${icon}</span> ${confirmText}`;
+  okBtn.className = 'action-btn ' + btnClass;
+  
+  confirmActionCallback = callback;
+  document.getElementById('confirmModal').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('show');
+  confirmActionCallback = null;
+}
+
+document.getElementById('confirmCancelBtn').addEventListener('click', closeConfirm);
+document.getElementById('confirmOkBtn').addEventListener('click', () => {
+  if (confirmActionCallback) confirmActionCallback();
+  closeConfirm();
+});
+
+
 window.addEventListener('DOMContentLoaded', function() {
   handleOAuthRedirect();
   
-  // Setup BroadcastChannel to securely listen for the auth token from the popup window without relying on caching.
   try {
     const authChannel = new BroadcastChannel('wfa_auth');
     authChannel.onmessage = function(e) {
@@ -647,23 +754,19 @@ function handleOAuthRedirect() {
   });
   
   if (params.access_token) {
-    // 1. If opened via standard popup window, pass token to main window function directly
     if (window.opener && typeof window.opener.receiveDriveToken === 'function') {
       window.opener.receiveDriveToken(params.access_token);
     }
     
-    // 2. Broadcast the token for main window to catch (Fallback for mobile custom tabs)
     try {
       const authChannel = new BroadcastChannel('wfa_auth');
       authChannel.postMessage(params.access_token);
     } catch(e) {}
 
-    // Attempt to auto-close popup (works on desktop browsers)
     if (window.opener) {
       window.close();
     }
 
-    // Fallback UI for mobile Custom Tabs when window refuses to auto-close:
     document.body.innerHTML = `
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 20px; background: var(--bg);">
         <span class="material-symbols-rounded" style="font-size: 64px; color: var(--green); margin-bottom: 16px;">cloud_done</span>
@@ -951,60 +1054,81 @@ async function lockActiveWFs() {
   }
 }
 
-async function doLockCurrent() {
+function doLockCurrent() {
   if (isProcessing) return;
-  isProcessing = true;
-  updateActionBtns();
-  if (timerInterval) clearInterval(timerInterval);
-  timerRunning = false;
   
-  if (isLinksModalOpen) toggleLinksModal(false);
-  
-  await lockActiveWFs();
-  
-  document.getElementById('timerCard').classList.remove('visible');
-  toast('Locked ' + activeWFs.length + ' active files');
-  activeWFs = []; 
-  
-  clearSelection();
-  isProcessing = false;
-  updateActionBtns();
+  showConfirm(
+    'Lock Current Session', 
+    `Are you sure you want to lock <b>${activeWFs.length} watchface${activeWFs.length === 1 ? '' : 's'}</b>?`, 
+    'lock', 
+    'Lock Current', 
+    'btn-orange',
+    async () => {
+      isProcessing = true;
+      updateActionBtns();
+      if (timerInterval) clearInterval(timerInterval);
+      timerRunning = false;
+      
+      if (isLinksModalOpen) toggleLinksModal(false);
+      
+      await lockActiveWFs();
+      
+      document.getElementById('timerCard').classList.remove('visible');
+      
+      // Also updating the toast message to match!
+      toast(`Locked ${activeWFs.length} watchface${activeWFs.length === 1 ? '' : 's'}`);
+      
+      activeWFs = []; 
+      
+      clearSelection();
+      isProcessing = false;
+      updateActionBtns();
+    }
+  );
 }
 
-async function doLockAll() {
+function doLockAll() {
   if (isProcessing) return;
-  if (!confirm("Make all loaded watchfaces private?")) return;
   
-  isProcessing = true;
-  updateActionBtns();
-  if (timerInterval) clearInterval(timerInterval);
-  timerRunning = false;
+  showConfirm(
+    'Lock All Watchfaces',
+    'Are you sure you want to make private <b>all watchfaces</b>?',
+    'lock_person',
+    'Lock All',
+    'btn-red',
+    async () => {
+      isProcessing = true;
+      updateActionBtns();
+      if (timerInterval) clearInterval(timerInterval);
+      timerRunning = false;
 
-  if (isLinksModalOpen) toggleLinksModal(false);
+      if (isLinksModalOpen) toggleLinksModal(false);
 
-  document.getElementById('timerCard').classList.remove('visible');
-  toast('Locking everything...');
-  
-  const allWfs = Object.values(watchfaces);
-  
-  for (const wf of allWfs) {
-    try {
-      const listRes = await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions`, { headers: {'Authorization': 'Bearer ' + accessToken} });
-      if (listRes.ok) {
-        const list = await listRes.json();
-        const p = list.permissions?.find(p => p.type === 'anyone');
-        if (p) {
-          await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions/${p.id}`, {method: 'DELETE', headers: {'Authorization': 'Bearer ' + accessToken}});
-        }
+      document.getElementById('timerCard').classList.remove('visible');
+      toast('Locking everything...');
+      
+      const allWfs = Object.values(watchfaces);
+      
+      for (const wf of allWfs) {
+        try {
+          const listRes = await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions`, { headers: {'Authorization': 'Bearer ' + accessToken} });
+          if (listRes.ok) {
+            const list = await listRes.json();
+            const p = list.permissions?.find(p => p.type === 'anyone');
+            if (p) {
+              await fetch(`https://www.googleapis.com/drive/v3/files/${wf.id}/permissions/${p.id}`, {method: 'DELETE', headers: {'Authorization': 'Bearer ' + accessToken}});
+            }
+          }
+        } catch(e) {}
       }
-    } catch(e) {}
-  }
-  
-  toast('All locked');
-  activeWFs = [];
-  clearSelection();
-  isProcessing = false;
-  updateActionBtns();
+      
+      toast('All locked');
+      activeWFs = [];
+      clearSelection();
+      isProcessing = false;
+      updateActionBtns();
+    }
+  );
 }
 
 function updateActionBtns() { 
