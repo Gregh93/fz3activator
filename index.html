@@ -726,6 +726,19 @@ document.getElementById('confirmOkBtn').addEventListener('click', () => {
 window.addEventListener('DOMContentLoaded', function() {
   handleOAuthRedirect();
   
+  // --- ADD THESE LINES TO LOAD CACHED DATA ---
+  const savedCreds = localStorage.getItem('drive_credentials');
+  if (savedCreds) {
+    credentials = JSON.parse(savedCreds);
+    hasCreds = true;
+  }
+  
+  const savedToken = localStorage.getItem('drive_access_token');
+  if (savedToken) {
+    receiveDriveToken(savedToken);
+  }
+  // -------------------------------------------
+  
   try {
     const authChannel = new BroadcastChannel('wfa_auth');
     authChannel.onmessage = function(e) {
@@ -738,6 +751,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
 function receiveDriveToken(token) {
   accessToken = token;
+  
+  // Add this line to cache the token:
+  localStorage.setItem('drive_access_token', token);
+  
   document.getElementById('driveDot').className = 'status-dot ok';
   document.getElementById('connectBtn').classList.add('ok');
   updateActionBtns();
@@ -790,7 +807,23 @@ async function processFiles(files) {
       try {
         const text = await file.text();
         const parsed = JSON.parse(text);
-        credentials = parsed.installed || parsed.web;
+        const newCreds = parsed.installed || parsed.web;
+        const newCredsString = JSON.stringify(newCreds);
+        
+        // Grab what we already have saved in the browser
+        const cachedCredsString = localStorage.getItem('drive_credentials');
+        
+        // Only hit localStorage if the file is actually new or changed
+        if (newCredsString !== cachedCredsString) {
+          localStorage.setItem('drive_credentials', newCredsString);
+          credentials = newCreds;
+          // Optional: let yourself know it actually updated
+          console.log('Drive credentials updated in cache.'); 
+        } else {
+          // It's the exact same file, so just make sure the memory variables are set
+          credentials = newCreds; 
+        }
+        
         foundCreds = true;
         hasCreds = true;
       } catch(err) { toast('Error parsing credentials'); }
