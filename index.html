@@ -1167,6 +1167,7 @@ document.getElementById('timerCard').addEventListener('click', () => {
     a.className = 'link-item';
     a.href = wf.url;
     a.target = '_blank';
+	a.rel = 'noopener noreferrer';
     a.innerHTML = `<span class="material-symbols-rounded">open_in_new</span> ${wf.name} (${wf.model})`;
     linksContainer.appendChild(a);
     linksAdded++;
