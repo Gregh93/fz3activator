@@ -633,11 +633,7 @@ function playCompletionAlert() {
   } catch(e) {}
 }
 
-const WATCH_MAP = {
-  "bip6": "Amazfit Bip 6",
-  "activemax": "Amazfit Active Max",
-  "bipmax": "Amazfit Bip Max"
-};
+let WATCH_MAP = {};
 
 function getWatchName(id) { return WATCH_MAP[id.toLowerCase()] || id; }
 
@@ -718,7 +714,13 @@ function restoreFromCache() {
 
   try {
     if (localStorage.getItem(LS_CRED_KEY)) { credentials = JSON.parse(localStorage.getItem(LS_CRED_KEY)); hasCreds = true; }
-    if (localStorage.getItem(LS_WF_KEY)) { watchfaceText = localStorage.getItem(LS_WF_KEY); hasWfs = true; }
+    if (localStorage.getItem(LS_WF_KEY)) {
+      watchfaceText = localStorage.getItem(LS_WF_KEY); 
+      hasWfs = true;
+      if (localStorage.getItem('wfa_watch_map')) { 
+        WATCH_MAP = JSON.parse(localStorage.getItem('wfa_watch_map')); 
+      }
+    }
     
     if (hasCreds && hasWfs) {
       document.getElementById('fileDot').className = 'status-dot ok';
@@ -733,6 +735,7 @@ async function processFiles(files) {
   
   let foundCreds = false;
   let foundWFs = false;
+  let foundWatches = false;
 
   for (let file of files) {
     if (file.name === 'credentials.json') {
@@ -753,13 +756,37 @@ async function processFiles(files) {
         hasWfs = true;
       } catch(err) { toast('Error reading watchfaces'); }
     }
+    // NEW LOGIC: Load the watches map dynamically
+    if (file.name === 'watches.json') {
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        WATCH_MAP = {}; // Reset the map
+        
+        // Invert the JSON map: "Display Name": "id" -> "id": "Display Name"
+        for (const [watchName, watchId] of Object.entries(parsed)) {
+          WATCH_MAP[watchId.toLowerCase()] = watchName;
+        }
+        
+        // Optionally save to localStorage if you want it to persist across reloads
+        localStorage.setItem('wfa_watch_map', JSON.stringify(WATCH_MAP));
+        foundWatches = true;
+      } catch(err) { toast('Error parsing watches.json'); }
+    }
   }
 
+  // Adjusted validation to include the new JSON file
   if (foundCreds && foundWFs) {
     document.getElementById('fileDot').className = 'status-dot ok';
     document.getElementById('folderBtn').classList.add('ok');
+    
+    if (foundWatches) {
+      toast('Data & Watches Loaded');
+    } else {
+      toast('Data Loaded (Using fallback watches)');
+    }
+    
     reloadList();
-    toast('Data Loaded');
     
     if (!accessToken) {
       setTimeout(() => startAuthRedirect(), 500);
@@ -796,8 +823,8 @@ function parseWatchfaces(text) {
     if (!line || line.startsWith('#')) return;
     const parts = line.split('|').map(p => p.trim());
     if (parts.length >= 2) {
+      const postUrl = parts.length > 2 ? parts[2] : '';
       const watchId = parts.length > 3 ? parts[3] : 'unknown';
-      const postUrl = parts.length > 4 ? parts[4] : '';
       const key = `${parts[0]} (${watchId})`; 
       
       result[key] = { 
@@ -869,13 +896,8 @@ function renderList() {
       const li = document.createElement('li');
       li.className = selectedNames.has(key) ? 'selected' : '';
       
-      if (filterVal === 'all') {
-        const niceName = getWatchName(wf.watch_id);
-        // Use wf.displayName instead of the key
-        li.innerHTML = `<span class="wf-name">${wf.displayName}</span><span class="wf-meta">${niceName}</span>`;
-      } else {
-        li.innerHTML = `<span class="wf-name">${wf.displayName}</span>`;
-      }
+      const niceName = getWatchName(wf.watch_id);
+      li.innerHTML = `<span class="wf-name">${wf.displayName}</span><span class="wf-meta">${niceName}</span>`;
       
       li.onclick = () => {
         selectedNames.has(key) ? selectedNames.delete(key) : selectedNames.add(key);
