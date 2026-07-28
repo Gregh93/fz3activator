@@ -6,6 +6,8 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#09090b" />
   
+  <!-- Standalone Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="WF Activator" />
@@ -726,7 +728,6 @@ document.getElementById('confirmOkBtn').addEventListener('click', () => {
 window.addEventListener('DOMContentLoaded', function() {
   handleOAuthRedirect();
   
-  // --- ADD THESE LINES TO LOAD CACHED DATA ---
   const savedCreds = localStorage.getItem('drive_credentials');
   if (savedCreds) {
     credentials = JSON.parse(savedCreds);
@@ -734,26 +735,37 @@ window.addEventListener('DOMContentLoaded', function() {
   }
   
   const savedToken = localStorage.getItem('drive_access_token');
-  if (savedToken) {
-    receiveDriveToken(savedToken);
+  const expiresAt = localStorage.getItem('drive_token_expires_at');
+  
+  // Only use the token if it hasn't expired (giving a 60-second buffer)
+  if (savedToken && expiresAt && Date.now() < (parseInt(expiresAt, 10) - 60000)) {
+    const remainingSecs = Math.floor((parseInt(expiresAt, 10) - Date.now()) / 1000);
+    receiveDriveToken(savedToken, remainingSecs);
+  } else {
+    // Stale or missing token -> clean up
+    localStorage.removeItem('drive_access_token');
+    localStorage.removeItem('drive_token_expires_at');
   }
-  // -------------------------------------------
   
   try {
-    const authChannel = new BroadcastChannel('wfa_auth');
-    authChannel.onmessage = function(e) {
-      if (e.data && typeof e.data === 'string') {
-        receiveDriveToken(e.data);
-      }
-    };
-  } catch(e) {}
+	const authChannel = new BroadcastChannel('wfa_auth');
+	authChannel.onmessage = function(e) {
+		if (!e.data) return;
+		if (typeof e.data === 'string') {
+		  receiveDriveToken(e.data);
+		} else if (typeof e.data === 'object' && e.data.token) {
+		  receiveDriveToken(e.data.token, e.data.expiresIn);
+		}
+	  };
+	} catch(e) {}
 });
 
-function receiveDriveToken(token) {
+function receiveDriveToken(token, expiresIn = 3600) {
   accessToken = token;
+  const expiresAt = Date.now() + (expiresIn * 1000);
   
-  // Add this line to cache the token:
   localStorage.setItem('drive_access_token', token);
+  localStorage.setItem('drive_token_expires_at', expiresAt.toString());
   
   document.getElementById('driveDot').className = 'status-dot ok';
   document.getElementById('connectBtn').classList.add('ok');
@@ -764,20 +776,29 @@ function receiveDriveToken(token) {
 function handleOAuthRedirect() {
   const hash = window.location.hash;
   if (!hash || !hash.includes('access_token')) return;
+  
   const params = {};
   hash.slice(1).split('&').forEach(function(part) {
     const kv = part.split('=');
     params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
   });
-  
+
   if (params.access_token) {
+    // Extract Google's exact expires_in parameter (defaults to 3600s / 1hr if omitted)
+    const expiresIn = params.expires_in ? parseInt(params.expires_in, 10) : 3600;
+
+    // 1. Pass token + expiration to parent window if opened as popup
     if (window.opener && typeof window.opener.receiveDriveToken === 'function') {
-      window.opener.receiveDriveToken(params.access_token);
+      window.opener.receiveDriveToken(params.access_token, expiresIn);
     }
-    
+
+    // 2. Broadcast to other tabs/windows
     try {
       const authChannel = new BroadcastChannel('wfa_auth');
-      authChannel.postMessage(params.access_token);
+      authChannel.postMessage({
+        token: params.access_token,
+        expiresIn: expiresIn
+      });
     } catch(e) {}
 
     if (window.opener) {
@@ -1006,13 +1027,21 @@ async function doUnlock() {
   isProcessing = true;
   updateActionBtns();
   activeWFs = [];
+  let tokenExpired = false;
   
   for (const key of selectedNames) {
     try {
       const res = await fetch(`https://www.googleapis.com/drive/v3/files/${watchfaces[key].id}/permissions`, {
-        method: 'POST', headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
+        method: 'POST', 
+        headers: {'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
         body: JSON.stringify({type: 'anyone', role: 'reader'})
       });
+      
+      if (res.status === 401) {
+        tokenExpired = true;
+        break;
+      }
+
       if (res.ok) {
         activeWFs.push({
           name: watchfaces[key].displayName, 
@@ -1021,17 +1050,28 @@ async function doUnlock() {
           model: getWatchName(watchfaces[key].watch_id)
         });
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error('Unlock error:', e);
+    }
   }
 
   isProcessing = false;
-  if (activeWFs.length > 0) {
+
+  if (tokenExpired) {
+    accessToken = null;
+    localStorage.removeItem('drive_access_token');
+    localStorage.removeItem('drive_token_expires_at');
+    document.getElementById('driveDot').className = 'status-dot';
+    document.getElementById('connectBtn').classList.remove('ok');
+    toast('Token expired. Reconnect Drive.');
+  } else if (activeWFs.length > 0) {
     document.getElementById('timerCard').classList.add('visible');
     startCountdown();
     toast('Unlocked ' + activeWFs.length + ' files');
   } else {
     toast('Failed to unlock files');
   }
+  
   updateActionBtns();
 }
 
